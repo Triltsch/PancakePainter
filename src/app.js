@@ -430,22 +430,32 @@ function bindControls() {
             app.currentFile.name = path.parse(filePath).base;
 
             try {
-              fs.writeFileSync(app.currentFile.path, paper.getPBP()); // Write file!
-              toastr.success(i18n.t('file.note', {file: app.currentFile.name}));
+              // Write file
+              fs.writeFileSync(app.currentFile.path, paper.getPBP());
+              toastr.success(
+                i18n.t('file.note', {file: app.currentFile.name})
+              );
               app.currentFile.changed = false;
             } catch(e) {
-              toastr.error(i18n.t('file.error', {file: app.currentFile.name}));
+              toastr.error(
+                i18n.t('file.error', {file: app.currentFile.name})
+              );
             }
 
             if (callback) callback();
           });
         } else {
           try {
-            fs.writeFileSync(app.currentFile.path, paper.getPBP()); // Write file!
-            toastr.success(i18n.t('file.note', {file: app.currentFile.name}));
+            // Write file
+            fs.writeFileSync(app.currentFile.path, paper.getPBP());
+            toastr.success(
+              i18n.t('file.note', {file: app.currentFile.name})
+            );
             app.currentFile.changed = false;
           } catch(e) {
-            toastr.error(i18n.t('file.error', {file: app.currentFile.name}));
+            toastr.error(
+              i18n.t('file.error', {file: app.currentFile.name})
+            );
           }
         }
 

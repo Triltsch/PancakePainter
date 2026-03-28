@@ -4,7 +4,7 @@
  */
  /* globals
    window, mainWindow, _, toastr, i18n, paper, view, project, scale, app,
-   Raster, Group, Point, Path, Layer, path, fs, editorLoadedInit
+   Raster, Group, Point, Layer, path, fs, editorLoadedInit
  */
 
 var dataURI = require('datauri');
