@@ -1,7 +1,4 @@
-var fs = require('fs-plus');
-var app = require('electron').app;
-
-exports.handleStartupEvent = function(app, squirrelCommand) {
+exports.handleStartupEvent = function(app) {
   if (process.argv.length === 1) {
     return false;
   }
@@ -15,11 +12,11 @@ exports.handleStartupEvent = function(app, squirrelCommand) {
   const exeName = path.basename(process.execPath);
 
   const spawn = function(command, args) {
-    let spawnedProcess, error;
+    var spawnedProcess;
 
     try {
       spawnedProcess = ChildProcess.spawn(command, args, {detached: true});
-    } catch (error) {}
+    } catch (e) {}
 
     return spawnedProcess;
   };

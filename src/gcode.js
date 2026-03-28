@@ -3,7 +3,7 @@
  * paths into GCODE compatible with the PancakeBot.
  **/
 "use strict";
-/*globals _, paper, app */
+/*globals _, paper */
 var ClipperLib = require('./libs/clipper');
 var jscut = require('./libs/jscut_custom')(ClipperLib);
 

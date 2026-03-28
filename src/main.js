@@ -130,15 +130,15 @@ function settingsInit() {
       }
 
       // Load user config.
-      var user_config = {};
+      var userConfig = {};
       try {
         if (fs.existsSync(userSettingsFile)) {
-          user_config = require(userSettingsFile);
+          userConfig = require(userSettingsFile);
         }
       } catch(e) {}
       
-      for(var i in user_config) {
-        this.v[i] = user_config[i];
+      for(var j in userConfig) {
+        this.v[j] = userConfig[j];
       }
 
       this.save(); // Resave when we're done loading.
@@ -171,9 +171,19 @@ function windowInit() {
         defaultNs: 'app'
       },
       // Path to find file
-      resGetPath: path.join(appPath, 'locales', '__lng__', '__ns__-__lng__.json'),
+      resGetPath: path.join(
+        appPath,
+        'locales',
+        '__lng__',
+        '__ns__-__lng__.json'
+      ),
       // Path to store file
-      resSetPath: path.join(appPath, 'locales', '__lng__', '__ns__-__lng__.json'),
+      resSetPath: path.join(
+        appPath,
+        'locales',
+        '__lng__',
+        '__ns__-__lng__.json'
+      ),
       sendMissingTo: 'fallback|current|all', // Send missing values to
       lng: 'en-US'
     }, function(){
