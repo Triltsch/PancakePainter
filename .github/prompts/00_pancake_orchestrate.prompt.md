@@ -29,8 +29,8 @@ Execute the following stages in sequence:
    a. **Conflict check**: Before merging, verify PR `mergeable` status. If `CONFLICTED`, resolve via `git merge origin/main`, fix conflicting files, commit and push. Abort and report if non-resolvable.
    b. Merge once `MERGEABLE`, delete remote branch, sync local `main`.
 6. Post-merge CI verification:
-   - Poll CI status on `main` every 30 seconds (timeout: 10 minutes).
-   - If CI fails: diagnose via `gh run view --log-failed`, apply targeted hotfix commits, re-verify.
+   - Verify CI status on `main` using the repository's configured CI provider (timeout target: 10 minutes).
+   - If CI fails: diagnose from provider logs or local CI command output, apply targeted hotfix commits, re-verify.
    - If still failing after 2 fix attempts: stop as `blocked` and report exact failures and recovery action.
 
 # Approval gates

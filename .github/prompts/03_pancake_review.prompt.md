@@ -19,7 +19,7 @@ Given a pull request, perform the necessary steps in the following order:
 - Check if the pull request is already closed. In this case, check if the reviewer suggestions were already implemented or are outdated. For the suggestions which are not implemented yet and not outdated, assume that they were added to the PR after the PR was closed and merged. Open a new branch, implement the suggestions and create a new PR in this case.
 - **REQUIRED: Use ONLY MCP GitHub tools (sequentially, NO parallels)** to fetch PR data. This ensures stable, reliable API communication. Never use fallback methods or manual GitHub CLI unless MCP is completely unavailable.
 - **Read through peer review related comments carefully**: Review comments may be returned in different API responses than general issue comments.
-- **NO fallback methods allowed** unless all 4 MCP calls above complete AND return no results. In that case, only then escalate to authenticated GitHub CLI or user-provided review links.
+- **NO fallback methods allowed while MCP GitHub tools are available.** Only if MCP tools are unavailable or error out for this pull request may you follow the fallback sequence below.
 - **Copilot AI review handling:** Treat Copilot AI review comments exactly like human inline review comments. They are required input and must be implemented unless outdated or explicitly declined by the user.
 - **Stopping rule:** Only conclude "no reviewer comments" AFTER completing all 4 MCP calls above. Document exact call sequence and result counts in final report.
 - Implement the suggested changes in the codebase following the project guidelines and best practices.

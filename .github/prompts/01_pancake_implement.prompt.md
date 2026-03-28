@@ -31,7 +31,7 @@ Perform the necessary steps in the following order:
 ## Implementation
 
 - Perform your implementation tasks, following the best practices.
-- For new features or solved bugs, add tests or test cases matching the structure of the existings tests. Be thorough, but do not cover every detail with a test. Make a reasonable decision what is necessary for being tested.
+- For new features or solved bugs, add tests or test cases matching the structure of the existing tests. Be thorough, but do not cover every detail with a test. Make a reasonable decision what is necessary for being tested.
 
 ## Validation
 
@@ -45,7 +45,7 @@ Perform the necessary steps in the following order:
 
 ## Adapt documentation
 
-- Scan the documentation for inconsistencies and necessary adaptions triggered by this issues changed.
+- Scan the documentation for inconsistencies and necessary adaptations triggered by this issue's changes.
 - Adapt the documentation accordingly to reflect the changes made.
 
 # Hints
