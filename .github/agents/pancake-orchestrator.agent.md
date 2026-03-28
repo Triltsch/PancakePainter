@@ -87,15 +87,16 @@ Orchestrate the following stages in order:
 
 ### Stage 5 — Post-merge CI verification
 
-- After the merge commit reaches `main`, poll CI status:
-  - Use `gh run list --branch main --limit 1 --json status,conclusion,databaseId` every 30 seconds.
-  - Wait until the run is no longer `in_progress` / `queued`, or until a 10-minute timeout.
+- After the merge commit reaches `main`, verify CI status using the repository's native CI setup:
+  - Prefer any documented CI command and run it against `main` when feasible in this environment.
+  - Otherwise, monitor the configured CI provider for this repository and avoid GitHub Actions-specific commands when no GitHub Actions workflow exists.
+  - Aim to confirm a definitive CI result within a 10-minute window; if automatic polling is unavailable, report explicit manual verification steps.
 - If CI passes: report success and finish.
 - If CI fails:
-  1. Retrieve failure details: `gh run view <id> --log-failed`
+  1. Retrieve or summarize failure details from CI logs or local CI command output.
   2. Diagnose the root cause (test failure, import error, type error, etc.).
   3. Fix the failing code directly on `main` (small targeted hotfix commits only).
-  4. Push the fix and wait for the next CI run to verify.
+  4. Push the fix and wait for the CI system (or local CI command) to verify.
   5. Repeat up to 2 attempts. If still failing after 2 fix attempts, stop with status `blocked` and report:
      - exact failing tests / error messages
      - files that may need manual review

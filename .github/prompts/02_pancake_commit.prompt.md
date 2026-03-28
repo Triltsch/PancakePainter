@@ -18,7 +18,7 @@ Perform the necessary steps in the following order:
 - If `LEARNINGS.md` does not exist, create it before appending new entries.
 - Append important learnings discovered during the implementation to `LEARNINGS.md`.
 
-## Create a branch if there is non yet
+## Create a branch if there is none yet
 
 - Check if the current git branch is `main`.
   - If so, create a new branch with a descriptive name reflecting the changes made. Use kebab-case for the branch name. Let the branch begin with the implemented issue number, e.g. `123-add-user-authentication`.  
@@ -42,6 +42,6 @@ Perform the necessary steps in the following order:
 
 ## Create pull request
 
-- Create a pull request for merging the changed into the `main` branch.
+- Create a pull request for merging the changes into the `main` branch.
 - If the implemented issue is known, link that pull request to the implemented issue. Add 'Fixes #issue_number' to the pull request description if there is an implemented issue, but direct MCP access to the PR is not possible.
 - Add a summary about that pull request to its description.

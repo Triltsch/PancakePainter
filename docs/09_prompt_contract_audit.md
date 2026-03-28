@@ -23,7 +23,7 @@ Observed in the repository:
 
 - Validation currently available via npm scripts, especially npm test (jshint-based checks).
 - No .vscode/tasks.json in workspace at this time.
-- No Docker compose based app/test infrastructure in this repository.
+- No Docker Compose-based app/test infrastructure in this repository.
 - LEARNINGS.md did not exist previously.
 
 ## Mismatch Matrix
