@@ -283,12 +283,16 @@ describe('Autotrace Integration', () => {
 
 ## 5. E2E Test Strategy
 
-### Framework: Spectron (Electron-specific)
+### Framework: Playwright (Electron support)
 
-**Setup:**
+**Recommendation:** Prefer Playwright's maintained Electron support for new E2E investment.
+
+**Setup (example):**
 ```bash
-npm install --save-dev spectron
+npm install --save-dev @playwright/test playwright
 ```
+
+**Note:** Spectron is deprecated/archived and should only be treated as historical context.
 
 ### 5.1 Drawing Workflow E2E
 
@@ -469,28 +473,14 @@ tests/
 
 ### 6.4 CI/CD Integration
 
-**GitHub Actions (`.github/workflows/test.yml`):**
-```yaml
-name: Tests
+**Current state:** This repository is currently configured for Travis CI (`.travis.yml`).
 
-on: [push, pull_request]
+**Repository-native approach now:**
+- keep CI validation aligned with the existing Travis pipeline
+- ensure `npm test` and any future coverage command work in the Travis job
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [14, 16]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node-version }}
-      - run: npm install
-      - run: npm test
-      - run: npm run coverage
-      - uses: codecov/codecov-action@v2
-```
+**Future migration option (explicitly deferred):**
+- If the project later migrates from Travis to GitHub Actions, add a workflow under `.github/workflows/` and align supported Node/Electron compatibility first.
 
 ---
 
@@ -706,6 +696,6 @@ test('performance: Undo stack handles 100 operations', () => {
 ## References
 
 - [Jest Documentation](https://jestjs.io/)
-- [Spectron E2E Testing](https://github.com/electron-userland/spectron)
+- [Playwright Electron Testing](https://playwright.dev/docs/api/class-electron)
 - [Testing Node.js Applications](https://jestjs.io/docs/en/getting-started)
 - [PancakePainter architecture docs](./architecture-analysis.md) — Understand code first

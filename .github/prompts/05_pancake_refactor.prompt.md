@@ -109,7 +109,7 @@ If unclear: provide a brief recommendation and proceed.
 #### Specific optimizations per rule:
 Each rule must be:
 - **Concrete** – actionable, not theoretical
-- **Unapplicable** – directly usable in future work
+- **Applicable** – directly usable in future work
 - **Relevant** – not outdated or superseded by newer learnings
 - **Standalone** – understandable without external context
 

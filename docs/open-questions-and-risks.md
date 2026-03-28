@@ -13,7 +13,7 @@ This document captures **unknowns, assumptions, and risks** that should be valid
 **Current Situation:**
 - PancakePainter uses Electron 1.0.1 (2016)
 - Target: Electron 28+ (modern LTS)
-- Gap: ~7 major versions of breaking changes
+- Gap: ~27 major versions of breaking changes (1 -> 28)
 
 **Risk:** 🔴 Could block upgrade
 
