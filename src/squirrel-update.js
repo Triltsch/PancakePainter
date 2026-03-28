@@ -16,7 +16,11 @@ exports.handleStartupEvent = function(app) {
 
     try {
       spawnedProcess = ChildProcess.spawn(command, args, {detached: true});
-    } catch (e) {}
+    } catch (e) {
+      // Intentionally do not rethrow: failure to spawn the Squirrel updater
+      // should not prevent the app from starting, but we log for diagnostics.
+      console.error('Failed to spawn Squirrel Update process:', e);
+    }
 
     return spawnedProcess;
   };

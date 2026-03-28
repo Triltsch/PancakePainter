@@ -7,14 +7,14 @@ Define a repository-native validation contract for PancakePainter that works rel
 ## Current Validation Commands
 
 1. Install dependencies:
-- `npm install`
+  - `npm install`
 
 2. Lint/check command:
-- `npm test`
-- Current script target: `jshint src menus --exclude src/libs,node_modules`
+  - `npm test`
+  - Current script target: `jshint src menus --exclude src/libs,node_modules`
 
 3. Optional smoke check when startup behavior changes:
-- `npm start`
+  - `npm start`
 
 ## Lint Baseline Strategy
 

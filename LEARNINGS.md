@@ -40,7 +40,7 @@ Use this template for each new entry:
 ### 2026-03-28 - JSHint Lint Baseline Cleanup
 
 - Context: Issue #5 — fix all JSHint violations left in legacy source files so `npm test` exits cleanly (exit 0).
-- Problem: 15 JSHint warnings across 5 files: unused globals in `/* globals */` comments, camelCase violations (`user_config`), duplicate loop variable declarations (`i`), unused `require()` assignments, and line-length violations (>120 chars).
+- Problem: 15 JSHint warnings across 5 files: unused globals in `/* globals */` comments, camelCase violations (`user_config`), duplicate loop variable declarations (`i`), unused `require()` assignments, and line-length violations that exceeded the configured JSHint `maxlen` (80 chars).
 - Resolution: Minimal behaviour-safe edits only — removed unused globals from JSHint directive comments, renamed variable to camelCase, changed second loop counter to avoid redeclaration, removed unused `require` calls, wrapped long lines at logical operators or call sites.
 - Rule: When fixing JSHint violations, change only what JSHint flags; do not refactor surrounding code. Verify with `npm test` after each file change to catch cascading failures early.
 - Affected files: src/app.js, src/editor.ps.js, src/gcode.js, src/main.js, src/squirrel-update.js, docs/10_validation_contract.md.
