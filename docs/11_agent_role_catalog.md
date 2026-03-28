@@ -42,7 +42,7 @@ workflow for domain-specific refactoring tasks.
 #### Purpose
 
 Execute a targeted Electron version bump from the current legacy baseline to a
-supported LTS release, resolving all API-level breaking changes without changing
+currently supported/stable Electron release line, resolving all API-level breaking
 application logic or business behaviour.
 
 #### Boundaries
@@ -115,10 +115,15 @@ roles depend on.
 - Validation contract update if test command changes
 
 **Out of scope:**
+- CI/test-runner alignment necessary for Jest (for example, updating the Node.js
+  version and test command in `.travis.yml` or equivalent so the test suite runs)
+
+**Out of scope:**
 - Production source code changes (tests only)
 - Electron upgrade (handled by Role 1)
 - Comprehensive end-to-end or integration test suites
-- CI pipeline changes beyond updating the validation contract doc
+- Major CI pipeline redesign beyond minimal updates such as Node version or
+  test command changes already captured in the validation contract doc
 
 #### Required inputs
 

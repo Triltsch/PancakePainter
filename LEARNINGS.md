@@ -50,5 +50,5 @@ Use this template for each new entry:
 - Context: Issue #3 (US-104) — define missing specialized agent roles for Option A refactoring epics.
 - Problem: Large roadmap tasks (Electron upgrade, test bootstrap, modularization, dependency modernization) had no designated agent boundary, making sprint decomposition ambiguous.
 - Resolution: Produced a role catalog (`docs/11_agent_role_catalog.md`) with four roles: pancake-electron-upgrader, pancake-test-bootstrapper, pancake-modularizer, pancake-dependency-modernizer. Each role has defined purpose, boundaries, inputs, outputs, and failure guard rails.
-- Rule: Research/documentation issues produce catalog or design docs only — do not create agent .md files until the role's activation sprint. Keep role boundaries single-concern.
+- Rule: Research/documentation issues produce catalog or design docs only — do not create `.agent.md` agent definition files until the role's activation sprint. Keep role boundaries single-concern.
 - Affected files: docs/11_agent_role_catalog.md, LEARNINGS.md.
