@@ -44,3 +44,11 @@ Use this template for each new entry:
 - Resolution: Minimal behaviour-safe edits only — removed unused globals from JSHint directive comments, renamed variable to camelCase, changed second loop counter to avoid redeclaration, removed unused `require` calls, wrapped long lines at logical operators or call sites.
 - Rule: When fixing JSHint violations, change only what JSHint flags; do not refactor surrounding code. Verify with `npm test` after each file change to catch cascading failures early.
 - Affected files: src/app.js, src/editor.ps.js, src/gcode.js, src/main.js, src/squirrel-update.js, docs/10_validation_contract.md.
+
+### 2026-03-28 - Specialized Agent Role Catalog
+
+- Context: Issue #3 (US-104) — define missing specialized agent roles for Option A refactoring epics.
+- Problem: Large roadmap tasks (Electron upgrade, test bootstrap, modularization, dependency modernization) had no designated agent boundary, making sprint decomposition ambiguous.
+- Resolution: Produced a role catalog (`docs/11_agent_role_catalog.md`) with four roles: pancake-electron-upgrader, pancake-test-bootstrapper, pancake-modularizer, pancake-dependency-modernizer. Each role has defined purpose, boundaries, inputs, outputs, and failure guard rails.
+- Rule: Research/documentation issues produce catalog or design docs only — do not create `.agent.md` agent definition files until the role's activation sprint. Keep role boundaries single-concern.
+- Affected files: docs/11_agent_role_catalog.md, LEARNINGS.md.
