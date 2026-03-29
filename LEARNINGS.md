@@ -60,3 +60,11 @@ Use this template for each new entry:
 - Resolution: Updated `docs/10_validation_contract.md` with explicit command authority, ordered workflow (`npm install` -> `npm test` -> conditional `npm start`), pass/fail matrix, and prompt-ready usage guidance.
 - Rule: Treat `npm install` + `npm test` as mandatory baseline checks; run `npm start` only for startup-affecting changes and document that decision in stage checkpoints.
 - Affected files: docs/10_validation_contract.md, LEARNINGS.md.
+
+### 2026-03-29 - Markdown Nested List Reliability In PR Docs
+
+- Context: PR #10 Copilot review feedback on `docs/10_validation_contract.md`.
+- Problem: Numbered-list sub-bullets used two-space indentation, which can render inconsistently as non-nested lists in CommonMark/GitHub Markdown.
+- Resolution: Increased indentation for sub-bullets and wrapped lines under numbered items to preserve stable nesting.
+- Rule: In numbered Markdown lists, indent nested bullets and continuation lines at least three spaces beyond the list marker for reliable renderer behavior.
+- Affected files: docs/10_validation_contract.md, LEARNINGS.md.

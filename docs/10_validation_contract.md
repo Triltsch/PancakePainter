@@ -21,19 +21,19 @@ broader automated test suite is introduced.
 ## Current Validation Commands
 
 1. Install dependencies
-  - Command: `npm install`
-  - Purpose: ensure local dependency graph matches repository lock state
+   - Command: `npm install`
+   - Purpose: ensure local dependency graph matches repository lock state
 
 2. Lint/check baseline
-  - Command: `npm test`
-  - Current script target: `jshint src menus --exclude src/libs,node_modules`
-  - Purpose: enforce repository lint baseline before review or merge
+   - Command: `npm test`
+   - Current script target: `jshint src menus --exclude src/libs,node_modules`
+   - Purpose: enforce repository lint baseline before review or merge
 
 3. Startup smoke validation (conditional)
-  - Command: `npm start`
-  - Run only when changes can affect startup/runtime wiring (for example:
-    Electron main-process initialization, preload/IPC setup, startup scripts)
-  - Purpose: detect immediate startup regressions not visible from linting
+   - Command: `npm start`
+   - Run only when changes can affect startup/runtime wiring (for example:
+     Electron main-process initialization, preload/IPC setup, startup scripts)
+   - Purpose: detect immediate startup regressions not visible from linting
 
 ## Authoritative Workflow Before Broad Tests Exist
 
