@@ -23,6 +23,7 @@
   "scripts": {
     "start": "electron .",
     "test": "jshint src menus --exclude src/libs,node_modules",
+    "smoke": "powershell -ExecutionPolicy Bypass -File scripts/smoke-test.ps1",
     "watch": "sass --watch src/styles/index.scss:src/styles/index.css"
   },
   "dependencies": {

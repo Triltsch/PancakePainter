@@ -58,6 +58,7 @@ Implemented contract behavior:
 - Prefer VS Code task Checks if present.
 - Run npm test from repository root.
 - Run optional npm start smoke check if startup behavior changed.
+- Run optional `npm run smoke` check if startup behavior changed (delegates to `scripts/smoke-test.ps1`).
 - Report missing tasks explicitly instead of assuming they exist.
 - Make npm test cross-platform so it works in the repository's primary PowerShell environment.
 
