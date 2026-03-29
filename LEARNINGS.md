@@ -68,3 +68,11 @@ Use this template for each new entry:
 - Resolution: Increased indentation for sub-bullets and wrapped lines under numbered items to preserve stable nesting.
 - Rule: In numbered Markdown lists, indent nested bullets and continuation lines at least three spaces beyond the list marker for reliable renderer behavior.
 - Affected files: docs/10_validation_contract.md, LEARNINGS.md.
+
+### 2026-03-29 - Startup Smoke Check Process Supervision on Windows
+
+- Context: Issue #11 (US-201) required a repeatable startup smoke check for the Electron app.
+- Problem: Launching with npm on Windows creates a process tree where only killing the parent can leave child Electron processes running.
+- Resolution: Added a PowerShell smoke script that starts `npm start`, monitors process liveness for a fixed window, and always cleans up with `taskkill /F /T /PID`.
+- Rule: For Electron smoke checks started through npm on Windows, prefer `taskkill /T` over `Stop-Process` to avoid orphaned child processes.
+- Affected files: scripts/smoke-test.ps1, package.json, docs/12_startup_smoke_check.md, docs/10_validation_contract.md.
