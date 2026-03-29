@@ -52,13 +52,13 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 # --- Pre-flight checks -------------------------------------------------------
 
 if (-not (Get-Command 'npm.cmd' -ErrorAction SilentlyContinue)) {
-    Write-Error 'npm.cmd not found on PATH. Ensure Node.js is installed and on PATH.'
+    Write-Host 'npm.cmd not found on PATH. Ensure Node.js is installed and on PATH.' -ForegroundColor Red
     exit 1
 }
 
 $nodeModulesPath = Join-Path $repoRoot 'node_modules'
 if (-not (Test-Path $nodeModulesPath)) {
-    Write-Error "node_modules not found at '$nodeModulesPath'. Run 'npm install' first."
+    Write-Host "node_modules not found at '$nodeModulesPath'. Run 'npm install' first." -ForegroundColor Red
     exit 1
 }
 
@@ -123,6 +123,6 @@ if ($passed) {
     Write-Host "PASS: Application remained alive for $WaitSeconds second(s)."
     exit 0
 } else {
-    Write-Error "FAIL: $failReason"
+    Write-Host "FAIL: $failReason" -ForegroundColor Red
     exit 1
 }
