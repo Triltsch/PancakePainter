@@ -15,7 +15,7 @@ broader automated test suite is introduced.
 - Authoritative command set (current state):
   1. `npm install`
   2. `npm test`
-  3. `npm start` (smoke check only when startup behavior changed)
+  3. `npm run smoke` (smoke check only when startup behavior changed)
 - CI provider currently used by this repository: Travis CI (`.travis.yml`)
 
 ## Current Validation Commands
@@ -30,10 +30,13 @@ broader automated test suite is introduced.
    - Purpose: enforce repository lint baseline before review or merge
 
 3. Startup smoke validation (conditional)
-   - Command: `npm start`
+   - Command: `npm run smoke`
+   - Delegates to `scripts/smoke-test.ps1` (Windows PowerShell).
    - Run only when changes can affect startup/runtime wiring (for example:
-     Electron main-process initialization, preload/IPC setup, startup scripts)
-   - Purpose: detect immediate startup regressions not visible from linting
+     Electron main-process initialization, `src/main.js`, `src/app.js`,
+     `src/index.html`, menu wiring, or dependency changes).
+   - Purpose: detect immediate startup crashes not visible from linting.
+   - Full procedure and pass/fail criteria: `docs/12_startup_smoke_check.md`.
 
 ## Authoritative Workflow Before Broad Tests Exist
 
@@ -41,7 +44,7 @@ Use this order unless a prompt explicitly narrows scope:
 
 1. `npm install`
 2. `npm test`
-3. `npm start` only if startup behavior changed
+3. `npm run smoke` only if startup behavior changed
 
 Rationale:
 - This repository does not yet have comprehensive automated tests for all
@@ -66,18 +69,19 @@ If new lint debt appears but cannot be safely fixed in-scope:
 |---|---|---|
 | `npm install` | exits 0 with dependencies installed | install error, lock/dependency resolution failure |
 | `npm test` | exits 0 | JSHint reports one or more errors or command execution fails |
-| `npm start` (when required) | app launches without immediate startup crash | startup crash, blocking runtime init error |
+| `npm run smoke` (when required) | app process remains alive for check window (exit 0) | process exits prematurely or cannot start (exit 1) |
 
 Overall validation pass criteria:
 - Mandatory checks for all changes: `npm install`, `npm test`
-- Additional mandatory check for startup-affecting changes: `npm start`
+- Additional mandatory check for startup-affecting changes: `npm run smoke`
 - Required commands for the change type must all pass
 
 ## Prompt-Ready Usage
 
 Prompt workflows should consume this command set directly:
 
-- Implementation stage: run `npm test`; add `npm start` when startup behavior changes
+- Implementation stage: run `npm test`; add `npm run smoke` when startup behavior
+  changes
 - Review stage: re-run `npm test` after review fixes
 - Merge stage: verify `npm test` on the integration branch/default branch state
 

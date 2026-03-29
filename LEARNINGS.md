@@ -68,3 +68,27 @@ Use this template for each new entry:
 - Resolution: Increased indentation for sub-bullets and wrapped lines under numbered items to preserve stable nesting.
 - Rule: In numbered Markdown lists, indent nested bullets and continuation lines at least three spaces beyond the list marker for reliable renderer behavior.
 - Affected files: docs/10_validation_contract.md, LEARNINGS.md.
+
+### 2026-03-29 - Startup Smoke Check Process Supervision on Windows
+
+- Context: Issue #11 (US-201) required a repeatable startup smoke check for the Electron app.
+- Problem: Launching with npm on Windows creates a process tree where only killing the parent can leave child Electron processes running.
+- Resolution: Added a PowerShell smoke script that starts `npm start`, monitors process liveness for a fixed window, and always cleans up with `taskkill /F /T /PID`.
+- Rule: For Electron smoke checks started through npm on Windows, prefer `taskkill /T` over `Stop-Process` to avoid orphaned child processes.
+- Affected files: scripts/smoke-test.ps1, package.json, docs/12_startup_smoke_check.md, docs/10_validation_contract.md.
+
+### 2026-03-29 - PowerShell Write-Error Is Terminating When ErrorActionPreference Is Stop
+
+- Context: PR #11 review of scripts/smoke-test.ps1 — smoke check script for the Electron app startup.
+- Problem: The script set `$ErrorActionPreference = 'Stop'` at the top, then used `Write-Error` for all user-facing error messages followed by `exit 1`. With `Stop` preference, `Write-Error` throws a terminating exception, making every subsequent `exit 1` dead code. The script exited non-zero coincidentally (via unhandled exception), but produced a verbose PowerShell exception trace instead of the clean one-line message documented in docs/12_startup_smoke_check.md.
+- Resolution: Replaced all three `Write-Error` calls (pre-flight npm.cmd check, pre-flight node_modules check, and FAIL result reporting) with `Write-Host ... -ForegroundColor Red` so that the error message is displayed cleanly and `exit 1` executes as the explicit, controlled exit path.
+- Rule: In PowerShell scripts that set `$ErrorActionPreference = 'Stop'`, never use `Write-Error` for user-facing output followed by `exit`. Use `Write-Host -ForegroundColor Red` (or `Write-Warning`) for messages intended for the user, and reserve `Write-Error` only when you intend to throw a terminating exception into a caller.
+- Affected files: scripts/smoke-test.ps1.
+
+### 2026-03-29 - Incremental Doc Updates Must Remove Superseded Lines
+
+- Context: PR #11 review of docs/10_validation_contract.md — updating `npm start` references to `npm run smoke`.
+- Problem: The PR added corrected `npm run smoke` lines in two places in the Prompt-Ready Usage section and the Pass/Fail criteria block but left the old `npm start` lines in place, creating duplicate and contradictory guidance.
+- Resolution: Removed the stale `npm start` bullet from the Prompt-Ready Usage list (leaving only the `npm run smoke` bullet) and updated the remaining `npm start` reference in the Overall validation pass criteria block to `npm run smoke`.
+- Rule: When updating a doc to rename a command, search the entire file for the old command name before committing — do not only add the new line without removing the old one.
+- Affected files: docs/10_validation_contract.md.
