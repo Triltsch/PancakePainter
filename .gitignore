@@ -35,5 +35,7 @@ settings.json
 # Compiled resource cache (though this is sent out with production versions)
 .sass-cache
 
-# VS Code workspace settings
-.vscode/
+# VS Code per-user settings (excluded from tracking)
+.vscode/**
+!.vscode/settings.json
+!.vscode/mcp.json
