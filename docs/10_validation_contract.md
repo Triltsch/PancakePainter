@@ -73,14 +73,13 @@ If new lint debt appears but cannot be safely fixed in-scope:
 
 Overall validation pass criteria:
 - Mandatory checks for all changes: `npm install`, `npm test`
-- Additional mandatory check for startup-affecting changes: `npm start`
+- Additional mandatory check for startup-affecting changes: `npm run smoke`
 - Required commands for the change type must all pass
 
 ## Prompt-Ready Usage
 
 Prompt workflows should consume this command set directly:
 
-- Implementation stage: run `npm test`; add `npm start` when startup behavior changes
 - Implementation stage: run `npm test`; add `npm run smoke` when startup behavior
   changes
 - Review stage: re-run `npm test` after review fixes

@@ -39,6 +39,7 @@
       a virtual display (e.g. Xvfb on Linux) is configured.
 #>
 param(
+    [ValidateRange(1, [int]::MaxValue)]
     [int]$WaitSeconds = 10
 )
 
