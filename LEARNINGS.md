@@ -52,3 +52,11 @@ Use this template for each new entry:
 - Resolution: Produced a role catalog (`docs/11_agent_role_catalog.md`) with four roles: pancake-electron-upgrader, pancake-test-bootstrapper, pancake-modularizer, pancake-dependency-modernizer. Each role has defined purpose, boundaries, inputs, outputs, and failure guard rails.
 - Rule: Research/documentation issues produce catalog or design docs only — do not create `.agent.md` agent definition files until the role's activation sprint. Keep role boundaries single-concern.
 - Affected files: docs/11_agent_role_catalog.md, LEARNINGS.md.
+
+### 2026-03-29 - Authoritative Validation Order
+
+- Context: Issue #4 (US-102) — define repository-native validation contract used by prompts and manual workflows.
+- Problem: Validation guidance existed but did not clearly define authoritative command order and conditional smoke-check requirements before broader automated tests exist.
+- Resolution: Updated `docs/10_validation_contract.md` with explicit command authority, ordered workflow (`npm install` -> `npm test` -> conditional `npm start`), pass/fail matrix, and prompt-ready usage guidance.
+- Rule: Treat `npm install` + `npm test` as mandatory baseline checks; run `npm start` only for startup-affecting changes and document that decision in stage checkpoints.
+- Affected files: docs/10_validation_contract.md, LEARNINGS.md.
