@@ -16,16 +16,16 @@
 
 ## Implementation
 
-- All code must be fully typed.
+- Prefer adding JSDoc type annotations for new or significantly modified JavaScript modules; do not perform large-scale typing migrations unless explicitly requested.
 
 ## Repository
 
-- The repository name for this project is `https://github.com/Triltsch/DiWeiWei_pancake_Market.git`.
+- The repository name for this project is `https://github.com/Triltsch/PancakePainter.git`.
 - Before committing anything, ensure that all checks and tests pass successfully.
 
 # Documentation
 
-- The `doc` folder in the main project directory contains the general project manifest, guidelines and architecture descriptions.
+- The `docs` folder in the main project directory contains the general project manifest, guidelines and architecture descriptions.
 
 # Tools
 
@@ -44,5 +44,4 @@
   - Each test file has a descriptive header explaining its purpose and scope. 
   - Each test case has a header comment describing what it tests and the expected outcome in some detail. 
   - The test code is commented to explain complex logic or non-obvious decisions.
-
 

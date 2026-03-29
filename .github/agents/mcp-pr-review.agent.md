@@ -1,7 +1,7 @@
 ---
 name: mcp-pr-review
 description: "Use when: reviewing pull request comments, addressing PR feedback, implementing reviewer suggestions, handling Copilot review comments, or executing the pancake review workflow with strict MCP-first comment discovery."
-tools: [read, edit, search, execute, todo]
+tools: [read, edit, search, execute, todo, github.vscode-pull-request-github/activePullRequest]
 argument-hint: "Provide the pull request URL or PR number to review"
 user-invocable: true
 ---
@@ -17,18 +17,17 @@ Your only job is to fetch and implement reviewer feedback for a pull request whi
 - Do not use terminal-based GitHub access or substitute GitHub tools silently.
 - Do not conclude that there are no reviewer comments until the mandatory discovery sequence is complete.
 - Treat Copilot review comments exactly like human review comments.
-- If the MCP GitHub tool `mcp_github_pull_request_read` is not available in the current tool environment, fall back to `github-pull-request_activePullRequest` from the VS Code GitHub PR extension.
-- Only fall back to `gh` CLI if both MCP tools and VS Code extension tools are unavailable, and report which fallback was used.
+- Use `github.vscode-pull-request-github/activePullRequest` as the primary tool for fetching PR metadata, reviews, and comments.
+- Fall back to `gh pr view <N> --json reviews,comments,reviewComments` if the VS Code extension tool is unavailable or returns insufficient data.
+- Report which tool was used for discovery.
 
 ## Mandatory workflow
 
 1. Read the PR identifier from the user input.
 2. Confirm whether the current branch matches the PR head branch; switch only if the workflow permits it.
 3. Execute this exact GitHub discovery sequence in order:
-   - `mcp_github_pull_request_read(method="get", owner, repo, pullNumber)` — fetch base PR metadata
-   - `mcp_github_pull_request_read(method="get_reviews", owner, repo, pullNumber)` — fetch all review summaries
-   - `mcp_github_pull_request_read(method="get_review_comments", owner, repo, pullNumber)` — fetch all inline review threads
-   - `mcp_github_pull_request_read(method="get_comments", owner, repo, pullNumber)` — fetch general PR comments
+   - `github.vscode-pull-request-github/activePullRequest` — fetch PR metadata, reviews, inline review threads, and general comments
+   - If the tool returns incomplete review data, supplement with: `gh pr view <N> --json reviews,comments,reviewComments`
 4. Filter for unresolved and non-outdated comments only.
 5. If actionable comments exist, implement the minimal correct fixes.
 6. Run required checks and tests.

@@ -1,7 +1,7 @@
 ---
 name: pancake-sprint-planner
 description: "Use when: planning the next sprint from the documented backlog and architecture, structuring sprint scope, and preparing or creating GitHub issues for a single sprint."
-tools: [read, search, todo, runSubagent, github-pull-request_labels_fetch, mcp_github_get_me, mcp_github_issue_read, mcp_github_issue_write, mcp_github_list_issues, mcp_github_search_issues]
+tools: [read, search, todo, runSubagent, github/get_me, github/issue_read, github/issue_write, github/list_issues, github/search_issues]
 argument-hint: "Provide the sprint number, for example: 'Sprint 1' or 'Sprint 3'."
 user-invocable: true
 ---
@@ -15,7 +15,7 @@ Your job is to plan one sprint at a time from the authoritative documentation, p
 - Read the planning sources defined by the planning prompt.
 - Derive the correct sprint scope from roadmap order, dependencies, priorities, and blockers.
 - Produce issue-ready sprint items with acceptance criteria and dependencies.
-- Create GitHub issues through `mcp_github_issue_write` when available and appropriate.
+- Create GitHub issues through `github/issue_write` when available and appropriate.
 
 ## Core rules
 
@@ -43,7 +43,7 @@ Your job is to plan one sprint at a time from the authoritative documentation, p
    - labels
    - sprint or milestone mapping
 5. Verify GitHub access and repository reachability before creation.
-6. Create the issues through `mcp_github_issue_write`.
+6. Create the issues through `github/issue_write`.
 7. If issue creation is not possible, stop short of creation and report the prepared issue set as ready to create, with the exact blocker.
 
 ## Reporting requirements
