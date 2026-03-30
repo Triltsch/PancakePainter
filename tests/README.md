@@ -67,7 +67,7 @@ environment without any Electron or Paper.js mocking:
 
 | Module | Reason |
 |--------|--------|
-| `src/gcode.js` | `paper` and `_` are used only inside the returned renderer; the module and its factory can be loaded and inspected without calling the renderer |
+| `src/gcode.js` | `require('./gcode')` itself has no side effects. The factory (`gcodeFactory()`) assigns helpers onto `global.paper` at invocation time (`paper.shapeFillPath`, `paper.layerContainsCompoundPaths`, `paper.previewCam`), so a minimal `global.paper = {}` stub is required before calling the factory. See `docs/13_paperjs_mock_boundary_strategy.md` for full boundary details. |
 | `src/libs/clipper.js` | Pure JavaScript polygon clipping library, no external dependencies |
 | `src/libs/jscut_custom.js` | Pure JavaScript CAM library, no external dependencies |
 
