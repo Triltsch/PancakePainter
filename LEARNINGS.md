@@ -43,6 +43,10 @@ npm on Windows creates a process tree; stopping only the parent leaves Electron 
 `gcode.js` (and similar modules) write helpers onto `paper` in the factory body — not inside the returned renderer — causing `ReferenceError: paper is not defined` on any `gcodeFactory()` call in tests.
 - Rule: Before writing tests for any module, `grep` it for `paper.` at the top-level factory scope. If assignments exist at invocation time, add `beforeEach(() => { global.paper = {}; })` / `afterEach(() => { delete global.paper; })`. Full Paper.js mock is deferred to US-203.
 
+**Paper.js testing boundary should use three levels, not one universal mock**
+Trying to use one mock for all Paper-dependent behavior either over-mocks geometry (false confidence) or drags canvas runtime into unit tests (slow, brittle).
+- Rule: Use Level 0 (factory contract with `global.paper` stub) and Level 1 (Paper-Lite fixtures for business logic) in unit tests; reserve geometry semantics (`CompoundPath`, clipping/transforms) for a separate integration-level runtime suite.
+
 ---
 
 ## Documentation / Markdown

@@ -57,8 +57,11 @@ this mock.
 
 Modules that receive `paper` as a factory argument (e.g. `helper.undo.js`,
 `helper.clipboard.js`, `helper.utils.js`) require a `paper` stub to test. A
-minimal stub will be added in a follow-up issue (US-203). Until then, only
-modules that do not require a `paper` argument at call time are unit-tested.
+minimal boundary strategy is defined in US-203
+(`docs/13_paperjs_mock_boundary_strategy.md`). Use Level 0
+(`global.paper = {}` factory-contract stubs) for basic module tests, then
+Level 1 Paper-Lite fixtures for business logic. Reserve geometry semantics for
+integration-level runtime tests.
 
 ### Currently testable without mocking
 
@@ -67,7 +70,7 @@ environment without any Electron or Paper.js mocking:
 
 | Module | Reason |
 |--------|--------|
-| `src/gcode.js` | `paper` and `_` are used only inside the returned renderer; the module and its factory can be loaded and inspected without calling the renderer |
+| `src/gcode.js` | `require('./gcode')` itself has no side effects. The factory (`gcodeFactory()`) assigns helpers onto `global.paper` at invocation time (`paper.shapeFillPath`, `paper.layerContainsCompoundPaths`, `paper.previewCam`), so a minimal `global.paper = {}` stub is required before calling the factory. See `docs/13_paperjs_mock_boundary_strategy.md` for full boundary details. |
 | `src/libs/clipper.js` | Pure JavaScript polygon clipping library, no external dependencies |
 | `src/libs/jscut_custom.js` | Pure JavaScript CAM library, no external dependencies |
 
