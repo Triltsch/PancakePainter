@@ -1,110 +1,68 @@
 # LEARNINGS
 
-This file is mandatory for the pancake agent workflow.
+> Actionable rules for PancakePainter development and agent workflows.
+> Add new entries at the bottom of the relevant domain section.
 
-## Purpose
+---
 
-- Capture implementation and review learnings that prevent repeated mistakes.
-- Preserve repository-specific constraints for future agent runs.
+## Validation & npm Scripts
 
-## Entry Format
+**Repo-native validation only**
+Prompts and agents contain non-repo-native assumptions (Docker, pytest, etc.) that silently break CI.
+- Rule: Reference only commands that exist in this repository: `npm install`, `npm test`, `npm run smoke`. No external tool assumptions.
 
-Use this template for each new entry:
+**JSHint: use directory args, not shell globs**
+Shell glob patterns (`src/**/*.js`) break in PowerShell before JSHint runs.
+- Rule: Use directory arguments (`jshint src menus --exclude src/libs,node_modules`), not glob patterns, in npm scripts.
 
-### YYYY-MM-DD - Short Title
+**JSHint fixes: minimal, targeted edits**
+Refactoring surrounding code while fixing lint violations risks introducing new failures.
+- Rule: Change only what JSHint flags. Run `npm test` after each individual file change.
 
-- Context: What was being changed.
-- Problem: What failed or was risky.
-- Resolution: What fixed it.
-- Rule: What to do next time.
-- Affected files: List the key files.
+**Mandatory validation order**
+Skipping `npm install` causes false-positive test passes on a stale dependency tree.
+- Rule: Always run `npm install` → `npm test` (lint + jest). Run `npm run smoke` only for startup-affecting changes; document the decision in the stage checkpoint.
 
-## Entries
+---
 
-### 2026-03-28 - Repository-Native Prompt Contract Baseline
+## PowerShell / Windows
 
-- Context: Sprint 1 Phase 0 alignment of agent prompts and workflow contracts.
-- Problem: Prompts contained non-repo-native assumptions (Docker, Redis, PostgreSQL, pytest, Test: Verified task) that do not exist in this repository.
-- Resolution: Replaced those assumptions with repository-native validation guidance and documented the contract in docs.
-- Rule: Keep validation requirements tied to commands and tasks that exist in this repository.
-- Affected files: .github/prompts/01_pancake_implement.prompt.md, .github/prompts/03_pancake_review.prompt.md, .github/agents/pancake-orchestrator.agent.md, .github/agents/mcp-pr-review.agent.md, docs/09_prompt_contract_audit.md.
+**Electron cleanup: use `taskkill /T`, not `Stop-Process`**
+npm on Windows creates a process tree; stopping only the parent leaves Electron child processes running.
+- Rule: In smoke-check and supervision scripts, clean up with `taskkill /F /T /PID`.
 
-### 2026-03-28 - PowerShell-Safe Validation Command
+**`$ErrorActionPreference = 'Stop'` makes `Write-Error` terminate before `exit`**
+`Write-Error` throws an unhandled exception under `Stop` preference, bypassing the intended `exit 1` and producing a verbose trace instead of a clean message.
+- Rule: Use `Write-Host -ForegroundColor Red` for user-facing error output in scripts with `$ErrorActionPreference = 'Stop'`. Reserve `Write-Error` only when a terminating caller exception is the intended behaviour.
 
-- Context: Commit-time validation for Sprint 1 prompt contract alignment.
-- Problem: The original npm test script relied on shell glob expansion and failed in PowerShell before JSHint could lint the repository.
-- Resolution: Replaced the glob-based JSHint invocation with directory-based arguments that work cross-platform.
-- Rule: Prefer cross-platform npm scripts that do not depend on shell-specific glob expansion.
-- Affected files: package.json, docs/09_prompt_contract_audit.md.
+---
 
-### 2026-03-28 - JSHint Lint Baseline Cleanup
+## Testing (Jest)
 
-- Context: Issue #5 — fix all JSHint violations left in legacy source files so `npm test` exits cleanly (exit 0).
-- Problem: 15 JSHint warnings across 5 files: unused globals in `/* globals */` comments, camelCase violations (`user_config`), duplicate loop variable declarations (`i`), unused `require()` assignments, and line-length violations that exceeded the configured JSHint `maxlen` (80 chars).
-- Resolution: Minimal behaviour-safe edits only — removed unused globals from JSHint directive comments, renamed variable to camelCase, changed second loop counter to avoid redeclaration, removed unused `require` calls, wrapped long lines at logical operators or call sites.
-- Rule: When fixing JSHint violations, change only what JSHint flags; do not refactor surrounding code. Verify with `npm test` after each file change to catch cascading failures early.
-- Affected files: src/app.js, src/editor.ps.js, src/gcode.js, src/main.js, src/squirrel-update.js, docs/10_validation_contract.md.
+**PancakePainter modules assign to `global.paper` at factory invocation time**
+`gcode.js` (and similar modules) write helpers onto `paper` in the factory body — not inside the returned renderer — causing `ReferenceError: paper is not defined` on any `gcodeFactory()` call in tests.
+- Rule: Before writing tests for any module, `grep` it for `paper.` at the top-level factory scope. If assignments exist at invocation time, add `beforeEach(() => { global.paper = {}; })` / `afterEach(() => { delete global.paper; })`. Full Paper.js mock is deferred to US-203.
 
-### 2026-03-28 - Specialized Agent Role Catalog
+---
 
-- Context: Issue #3 (US-104) — define missing specialized agent roles for Option A refactoring epics.
-- Problem: Large roadmap tasks (Electron upgrade, test bootstrap, modularization, dependency modernization) had no designated agent boundary, making sprint decomposition ambiguous.
-- Resolution: Produced a role catalog (`docs/11_agent_role_catalog.md`) with four roles: pancake-electron-upgrader, pancake-test-bootstrapper, pancake-modularizer, pancake-dependency-modernizer. Each role has defined purpose, boundaries, inputs, outputs, and failure guard rails.
-- Rule: Research/documentation issues produce catalog or design docs only — do not create `.agent.md` agent definition files until the role's activation sprint. Keep role boundaries single-concern.
-- Affected files: docs/11_agent_role_catalog.md, LEARNINGS.md.
+## Documentation / Markdown
 
-### 2026-03-29 - Authoritative Validation Order
+**Numbered-list nesting: indent ≥3 spaces**
+Two-space indentation on sub-bullets renders as flat lists in CommonMark/GitHub Markdown.
+- Rule: Indent nested bullets and continuation lines at least three spaces beyond the parent list marker.
 
-- Context: Issue #4 (US-102) — define repository-native validation contract used by prompts and manual workflows.
-- Problem: Validation guidance existed but did not clearly define authoritative command order and conditional smoke-check requirements before broader automated tests exist.
-- Resolution: Updated `docs/10_validation_contract.md` with explicit command authority, ordered workflow (`npm install` -> `npm test` -> conditional `npm start`), pass/fail matrix, and prompt-ready usage guidance.
-- Rule: Treat `npm install` + `npm test` as mandatory baseline checks; run `npm start` only for startup-affecting changes and document that decision in stage checkpoints.
-- Affected files: docs/10_validation_contract.md, LEARNINGS.md.
+**Renaming a command in docs: remove the old name everywhere**
+Adding a corrected line without removing the old one leaves contradictory guidance in the same file.
+- Rule: When renaming any command or script reference in docs, search the entire file for the old name before committing.
 
-### 2026-03-29 - Markdown Nested List Reliability In PR Docs
+---
 
-- Context: PR #10 Copilot review feedback on `docs/10_validation_contract.md`.
-- Problem: Numbered-list sub-bullets used two-space indentation, which can render inconsistently as non-nested lists in CommonMark/GitHub Markdown.
-- Resolution: Increased indentation for sub-bullets and wrapped lines under numbered items to preserve stable nesting.
-- Rule: In numbered Markdown lists, indent nested bullets and continuation lines at least three spaces beyond the list marker for reliable renderer behavior.
-- Affected files: docs/10_validation_contract.md, LEARNINGS.md.
+## Agent Tooling
 
-### 2026-03-29 - Startup Smoke Check Process Supervision on Windows
+**Agent role files: catalog doc first, `.agent.md` only at activation sprint**
+Creating agent definition files before a role is active adds unmaintained files and ambiguous sprint scope.
+- Rule: Research and documentation issues produce catalog or design docs only (`docs/`). Do not create `.agent.md` files until the role's activation sprint; keep each role boundary single-concern.
 
-- Context: Issue #11 (US-201) required a repeatable startup smoke check for the Electron app.
-- Problem: Launching with npm on Windows creates a process tree where only killing the parent can leave child Electron processes running.
-- Resolution: Added a PowerShell smoke script that starts `npm start`, monitors process liveness for a fixed window, and always cleans up with `taskkill /F /T /PID`.
-- Rule: For Electron smoke checks started through npm on Windows, prefer `taskkill /T` over `Stop-Process` to avoid orphaned child processes.
-- Affected files: scripts/smoke-test.ps1, package.json, docs/12_startup_smoke_check.md, docs/10_validation_contract.md.
-
-### 2026-03-29 - PowerShell Write-Error Is Terminating When ErrorActionPreference Is Stop
-
-- Context: PR #11 review of scripts/smoke-test.ps1 — smoke check script for the Electron app startup.
-- Problem: The script set `$ErrorActionPreference = 'Stop'` at the top, then used `Write-Error` for all user-facing error messages followed by `exit 1`. With `Stop` preference, `Write-Error` throws a terminating exception, making every subsequent `exit 1` dead code. The script exited non-zero coincidentally (via unhandled exception), but produced a verbose PowerShell exception trace instead of the clean one-line message documented in docs/12_startup_smoke_check.md.
-- Resolution: Replaced all three `Write-Error` calls (pre-flight npm.cmd check, pre-flight node_modules check, and FAIL result reporting) with `Write-Host ... -ForegroundColor Red` so that the error message is displayed cleanly and `exit 1` executes as the explicit, controlled exit path.
-- Rule: In PowerShell scripts that set `$ErrorActionPreference = 'Stop'`, never use `Write-Error` for user-facing output followed by `exit`. Use `Write-Host -ForegroundColor Red` (or `Write-Warning`) for messages intended for the user, and reserve `Write-Error` only when you intend to throw a terminating exception into a caller.
-- Affected files: scripts/smoke-test.ps1.
-
-### 2026-03-29 - Incremental Doc Updates Must Remove Superseded Lines
-
-- Context: PR #11 review of docs/10_validation_contract.md — updating `npm start` references to `npm run smoke`.
-- Problem: The PR added corrected `npm run smoke` lines in two places in the Prompt-Ready Usage section and the Pass/Fail criteria block but left the old `npm start` lines in place, creating duplicate and contradictory guidance.
-- Resolution: Removed the stale `npm start` bullet from the Prompt-Ready Usage list (leaving only the `npm run smoke` bullet) and updated the remaining `npm start` reference in the Overall validation pass criteria block to `npm run smoke`.
-- Rule: When updating a doc to rename a command, search the entire file for the old command name before committing — do not only add the new line without removing the old one.
-- Affected files: docs/10_validation_contract.md.
-
-### 2026-03-29 - Jest + Electron: paper Global Assigned At Factory Invocation Time
-
-- Context: Issue #12 (US-202) — bootstrap Jest test harness with a representative passing test for `src/gcode.js`.
-- Problem: `gcode.js` exports a factory function that, when called, immediately assigns three helpers (`shapeFillPath`, `layerContainsCompoundPaths`, `previewCam`) onto the global `paper` object at the top level of the factory body — not inside the returned renderer. Any test that calls `gcodeFactory()` fails with `ReferenceError: paper is not defined` unless a stub is in place first.
-- Resolution: Added `beforeEach(() => { global.paper = {}; })` / `afterEach(() => { delete global.paper; })` in the test file. A plain empty object is sufficient because the factory only uses `paper` for property assignment; no Paper.js canvas or DOM methods are invoked at factory-call time.
-- Rule: Before writing tests for any PancakePainter module, grep the module for `paper.` at the module or factory body level (not nested in callbacks). If such assignments exist at factory invocation time, add a minimal `global.paper = {}` stub in `beforeEach`. Document any deferred full Paper.js mock work as a US-203 follow-up.
-- Affected files: tests/unit/gcode.test.js, tests/README.md.
-
-### 2026-03-29 - VS Code Buffer vs. Disk: multi_replace_string_in_file May Leave Unsaved Edits
-
-- Context: Issue #12 (US-202) — multi_replace_string_in_file was used to update package.json scripts.
-- Problem: `multi_replace_string_in_file` applied edits to the VS Code in-memory buffer (visible via `read_file`), but the changes were NOT flushed to disk. Terminal commands (`Get-Content`, `node -e "require('./package.json')"`, `npm run`) all read the old file. The scripts `lint` and `jest` appeared to be added but were missing on disk.
-- Resolution: Used PowerShell JSON manipulation (`Get-Content | ConvertFrom-Json → Add-Member → ConvertTo-Json | Set-Content`) to write the correct scripts directly to disk. Verified with both `node -e` and `npm test`.
-- Rule: After any `multi_replace_string_in_file` or `replace_string_in_file` operation on JSON config files, always run a terminal command (`node -e "require('./package.json')"` or equivalent) to confirm the change was persisted to disk before proceeding.
-- Affected files: package.json.
+**JSON config edits: verify on disk, not in the VS Code buffer**
+`replace_string_in_file` and `multi_replace_string_in_file` may update the in-memory buffer without flushing to disk; terminal commands and `npm run` read the stale on-disk version.
+- Rule: After editing any JSON config file (e.g., `package.json`), run `node -e "require('./package.json')"` in a terminal to confirm the change was persisted before proceeding.
