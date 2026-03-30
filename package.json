@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "electron-prebuilt": "1.0.1",
+    "jest": "^29.7.0",
     "jshint": "^2.9.2"
   }
 }
