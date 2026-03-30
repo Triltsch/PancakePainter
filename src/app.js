@@ -26,6 +26,7 @@ var i18n = remote.require('i18next');
 var app = remote.app;
 require('../menus/menu-init')(app); // Initialize the menus
 var fs = remote.require('fs-plus');
+var fileIO = require('./helpers/helper.file-io');
 
 // Bot specific configuration & state =====================---------------------
 var scale = {};
@@ -421,42 +422,25 @@ function bindControls() {
             ]
           }, function(filePath){
             if (!filePath) return; // Cancelled
-
-            // Verify file extension
-            if (filePath.split('.').pop().toLowerCase() !== 'pbp') {
-              filePath += '.pbp';
-            }
-            app.currentFile.path = filePath;
-            app.currentFile.name = path.parse(filePath).base;
-
-            try {
-              // Write file
-              fs.writeFileSync(app.currentFile.path, paper.getPBP());
-              toastr.success(
-                i18n.t('file.note', {file: app.currentFile.name})
-              );
-              app.currentFile.changed = false;
-            } catch(e) {
-              toastr.error(
-                i18n.t('file.error', {file: app.currentFile.name})
-              );
-            }
+            fileIO.saveProjectFile({
+              fs: fs,
+              paper: paper,
+              toastr: toastr,
+              i18n: i18n,
+              currentFile: app.currentFile,
+              filePath: filePath
+            });
 
             if (callback) callback();
           });
         } else {
-          try {
-            // Write file
-            fs.writeFileSync(app.currentFile.path, paper.getPBP());
-            toastr.success(
-              i18n.t('file.note', {file: app.currentFile.name})
-            );
-            app.currentFile.changed = false;
-          } catch(e) {
-            toastr.error(
-              i18n.t('file.error', {file: app.currentFile.name})
-            );
-          }
+          fileIO.saveProjectFile({
+            fs: fs,
+            paper: paper,
+            toastr: toastr,
+            i18n: i18n,
+            currentFile: app.currentFile
+          });
         }
 
         break;
@@ -471,7 +455,14 @@ function bindControls() {
             ]
           }, function(filePath){
             if (!filePath) return; // Cancelled
-            paper.loadPBP(filePath[0]);
+            fileIO.openProjectFile({
+              fs: fs,
+              paper: paper,
+              toastr: toastr,
+              i18n: i18n,
+              currentFile: app.currentFile,
+              filePath: filePath[0]
+            });
           });
         });
         break;
