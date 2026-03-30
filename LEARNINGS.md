@@ -47,6 +47,22 @@ npm on Windows creates a process tree; stopping only the parent leaves Electron 
 Trying to use one mock for all Paper-dependent behavior either over-mocks geometry (false confidence) or drags canvas runtime into unit tests (slow, brittle).
 - Rule: Use Level 0 (factory contract with `global.paper` stub) and Level 1 (Paper-Lite fixtures for business logic) in unit tests; reserve geometry semantics (`CompoundPath`, clipping/transforms) for a separate integration-level runtime suite.
 
+**Mock helper functions must be registered in global.paper by the factory**
+gcode.js attaches `shapeFillPath`, `layerContainsCompoundPaths`, and `previewCam` to `global.paper` during factory invocation, and internal functions reference these helpers.
+- Rule: In test setup, provide mock implementations of these functions on `global.paper` after factory invocation to prevent `TypeError` when internal code tries to call them.
+
+**Paper.js project object must exist in mock to prevent undefined reference errors**
+gcode.js internal helper functions reference `paper.project.activeLayer` as a fallback when layer is undefined.
+- Rule: Always include `global.paper.project = { activeLayer: mockLayer }` in test setup, not just an empty object stub.
+
+**Underscore.js mocking requires implementing only the subset of methods actually used**
+gcode.js uses `_.isArray()`, `_.each()`, and `_.extend()` throughout, causing `ReferenceError: _ is not defined` if the module is tested without global `_`.
+- Rule: Create a minimal `_` mock with only the methods the module calls. Avoid hauling in the full underscore.js library for unit tests.
+
+**Paper-Lite path fixtures must calculate path length as cumulative segment distances, not Euclidean**
+Mock paths use `length` property for preshutoff and travel-sort thresholds in gcode.js. Simple Euclidean distance from first to last point can underestimate path length for multi-segment paths.
+- Rule: Calculate `length` as sum of distances between consecutive points: `sum of sqrt((p[i].x - p[i-1].x)^2 + (p[i].y - p[i-1].y)^2)`.
+
 ---
 
 ## Documentation / Markdown

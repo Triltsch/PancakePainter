@@ -76,15 +76,18 @@ environment without any Electron or Paper.js mocking:
 
 ## Coverage Baseline
 
-Current baseline (established Sprint 2, US-202):
+Current baseline (updated Sprint 3, US-301):
 
 | Metric | Baseline |
 |--------|----------|
-| Statements | ~0% (sample test only) |
-| Branches | ~0% |
-| Functions | ~0% |
-| Lines | ~0% |
+| Statements | 71.36% |
+| Branches | 63.79% |
+| Functions | 86.11% |
+| Lines | 74.03% |
 
-Coverage expansion is planned in Sprint 3 (US-301, US-302, US-303). Run
-`npm run jest -- --coverage` to capture the current baseline and compare
-against future sprint work.
+Previous baseline (Sprint 2, US-202): ~0% (sample test only)
+
+Coverage improvement reflects addition of Slice A (Header/Footer/Pump Commands)
+and Slice B (Color Grouping/Travel Sorting) tests. Slice C (Geometry Semantics)
+is deferred per the boundary strategy. Run `npm run jest -- --coverage` to capture
+the current baseline and compare against future sprint work.
