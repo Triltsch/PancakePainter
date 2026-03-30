@@ -10,7 +10,6 @@ const path = require('path');
 var app = require('electron').app;  // Module to control application life.
 var appPath = app.getAppPath();
 var fs = require('fs-plus');
-var _ = require('underscore');
 var mainConfig = require('./helpers/helper.main-config');
 var createSettingsStore = require('./helpers/helper.settings-store');
 
@@ -54,7 +53,6 @@ function settingsInit() {
   var userSettingsFile = path.join(app.getPath('userData'), 'config.json');
   app.settings = createSettingsStore({
     fs: fs,
-    _: _,
     settingsFile: settingsFile,
     userSettingsFile: userSettingsFile,
     defaults: mainConfig.getDefaultSettings()

@@ -33,7 +33,7 @@ function createSettingsStore(options) {
 
       try {
         if (fs.existsSync(settingsFile)) {
-          this.v = JSON.parse(fs.readFileSync(settingsFile));
+          this.v = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
         }
       } catch (e) {}
 
@@ -45,7 +45,7 @@ function createSettingsStore(options) {
 
       try {
         if (fs.existsSync(userSettingsFile)) {
-          userConfig = JSON.parse(fs.readFileSync(userSettingsFile));
+          userConfig = JSON.parse(fs.readFileSync(userSettingsFile, 'utf8'));
         }
       } catch (e) {}
 

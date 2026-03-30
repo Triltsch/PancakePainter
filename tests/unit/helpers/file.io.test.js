@@ -122,10 +122,10 @@ describe('helper.file-io', () => {
 
   /**
    * Verifies unreadable file behavior.
-   * Expected: read exceptions are handled and do not crash caller.
+   * Expected: loader exceptions are handled and do not crash caller.
    */
   test('openProjectFile handles unreadable file gracefully', () => {
-    fsMock.readFileSync.mockImplementation(() => {
+    paperMock.loadPBP.mockImplementation(() => {
       throw new Error('EACCES');
     });
 
@@ -179,7 +179,6 @@ describe('helper.file-io', () => {
     });
 
     expect(success).toBe(true);
-    expect(fsMock.readFileSync).toHaveBeenCalledWith('C:/tmp/valid.pbp', 'utf8');
     expect(paperMock.loadPBP).toHaveBeenCalledWith('C:/tmp/valid.pbp');
     expect(currentFile.name).toBe('valid.pbp');
     expect(currentFile.changed).toBe(false);

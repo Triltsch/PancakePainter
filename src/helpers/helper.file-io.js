@@ -52,7 +52,6 @@ function openProjectFile(options) {
   }
 
   try {
-    fs.readFileSync(filePath, 'utf8');
     paper.loadPBP(filePath);
     currentFile.path = filePath;
     currentFile.name = path.parse(filePath).base;
