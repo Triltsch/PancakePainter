@@ -57,8 +57,11 @@ this mock.
 
 Modules that receive `paper` as a factory argument (e.g. `helper.undo.js`,
 `helper.clipboard.js`, `helper.utils.js`) require a `paper` stub to test. A
-minimal stub will be added in a follow-up issue (US-203). Until then, only
-modules that do not require a `paper` argument at call time are unit-tested.
+minimal boundary strategy is defined in US-203
+(`docs/13_paperjs_mock_boundary_strategy.md`). Use Level 0
+(`global.paper = {}` factory-contract stubs) for basic module tests, then
+Level 1 Paper-Lite fixtures for business logic. Reserve geometry semantics for
+integration-level runtime tests.
 
 ### Currently testable without mocking
 
