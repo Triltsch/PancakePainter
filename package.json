@@ -22,7 +22,9 @@
   "iconURL": "http://raw.githubusercontent.com/PancakeBot/PancakePainter/master/resources/win32/app.ico",
   "scripts": {
     "start": "electron .",
-    "test": "jshint src menus --exclude src/libs,node_modules",
+    "lint": "jshint src menus --exclude src/libs,node_modules",
+    "jest": "jest",
+    "test": "npm run lint && npm run jest",
     "smoke": "powershell -ExecutionPolicy Bypass -File scripts/smoke-test.ps1",
     "watch": "sass --watch src/styles/index.scss:src/styles/index.css"
   },
