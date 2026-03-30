@@ -23,70 +23,121 @@
  * @returns {Object} Mock path object with segments, length, data, and shape methods
  */
 function createMockPath(pointArray = [], dataOverrides = {}) {
-  // Calculate path length as sum of distances between consecutive points
-  let pathLength = 0;
-  for (let i = 1; i < pointArray.length; i++) {
-    const prev = pointArray[i - 1];
-    const curr = pointArray[i];
-    const dx = curr.x - prev.x;
-    const dy = curr.y - prev.y;
-    pathLength += Math.sqrt(dx * dx + dy * dy);
+  // Keep mutable point state internal to this path instance.
+  let points = pointArray.map(function(point) {
+    return { x: point.x, y: point.y };
+  });
+
+  function buildSegmentsFromPoints() {
+    var nextSegments = [];
+    var cumulative = 0;
+
+    for (var i = 0; i < points.length; i++) {
+      if (i > 0) {
+        var prev = points[i - 1];
+        var curr = points[i];
+        var dx = curr.x - prev.x;
+        var dy = curr.y - prev.y;
+        cumulative += Math.sqrt(dx * dx + dy * dy);
+      }
+
+      nextSegments.push({
+        point: { x: points[i].x, y: points[i].y },
+        location: { offset: cumulative }
+      });
+    }
+
+    return nextSegments;
   }
 
-  const segments = pointArray.map((point, index) => ({
-    point: { x: point.x, y: point.y },
-    location: { offset: index }
-  }));
+  function calculateLength() {
+    if (points.length < 2) return 0;
+    var total = 0;
 
-  return {
-    segments,
-    length: pathLength,
-    firstSegment: segments[0] || { point: { x: 0, y: 0 } },
-    lastSegment: segments[segments.length - 1] || { point: { x: 0, y: 0 } },
+    for (var i = 1; i < points.length; i++) {
+      var prev = points[i - 1];
+      var curr = points[i];
+      var dx = curr.x - prev.x;
+      var dy = curr.y - prev.y;
+      total += Math.sqrt(dx * dx + dy * dy);
+    }
+
+    return total;
+  }
+
+  var path = {
+    segments: [],
+    length: 0,
+    firstSegment: { point: { x: 0, y: 0 } },
+    lastSegment: { point: { x: 0, y: 0 } },
     closed: false,
     data: {
       fill: false,
       color: 0,
       ...dataOverrides
     },
+    removed: false,
     // Mock methods
-    clone() {
-      return createMockPath(pointArray, dataOverrides);
+    clone: function() {
+      var clonedPoints = points.map(function(p) {
+        return { x: p.x, y: p.y };
+      });
+      var clonedData = { ...this.data };
+      return createMockPath(clonedPoints, clonedData);
     },
-    flatten(resolution) {
-      // In real Paper.js, this adds intermediate points for curves.
-      // For test fixtures, treat as no-op or add gentle interpolation if needed.
+    flatten: function() {
       return this;
     },
-    reverse() {
-      pointArray.reverse();
+    reverse: function() {
+      points.reverse();
+      syncPathState();
       return this;
     },
-    add(point) {
-      pointArray.push(point);
-      segments.push({ point: { x: point.x, y: point.y }, location: { offset: segments.length } });
+    add: function(point) {
+      points.push({ x: point.x, y: point.y });
+      syncPathState();
       return this;
     },
-    remove() {
-      // Mark as removed
+    remove: function() {
       this.removed = true;
       return this;
     },
-    getPointAt(offset) {
-      // Return interpolated point at offset distance along path
-      if (this.length === 0) return this.firstSegment.point;
-      return pointArray[Math.floor((offset / this.length) * pointArray.length)] || this.lastSegment.point;
+    getPointAt: function(offset) {
+      if (this.length === 0 || points.length === 0) {
+        return this.firstSegment.point;
+      }
+
+      if (offset <= 0) return points[0];
+      if (offset >= this.length) return points[points.length - 1];
+
+      for (var i = 1; i < this.segments.length; i++) {
+        if (this.segments[i].location.offset >= offset) {
+          return points[i];
+        }
+      }
+
+      return points[points.length - 1];
     },
-    join(otherPath) {
-      // Simple join: append other path's points
+    join: function(otherPath) {
       if (otherPath && otherPath.segments) {
-        otherPath.segments.forEach(seg => {
+        otherPath.segments.forEach(function(seg) {
           this.add(seg.point);
-        });
+        }, this);
       }
       return this;
     }
   };
+
+  function syncPathState() {
+    path.segments = buildSegmentsFromPoints();
+    path.length = calculateLength();
+    path.firstSegment = path.segments[0] || { point: { x: 0, y: 0 } };
+    path.lastSegment = path.segments[path.segments.length - 1] || { point: { x: 0, y: 0 } };
+  }
+
+  syncPathState();
+
+  return path;
 }
 
 /**
@@ -106,11 +157,24 @@ function createMockLayer(paths = []) {
       return createMockLayer(this.children.map(p => p.clone ? p.clone() : p));
     },
     activate() {
-      // In real Paper.js, sets this as the active layer
+      // In real Paper.js, sets this as the active layer on the project.
+      if (typeof global !== 'undefined' && global.paper && global.paper.project) {
+        global.paper.project.activeLayer = this;
+      }
       return this;
     },
     insertChild(index, child) {
-      this.children.splice(index, 0, child);
+      var existingIndex = this.children.indexOf(child);
+      var targetIndex = index;
+
+      if (existingIndex !== -1) {
+        if (existingIndex < targetIndex) {
+          targetIndex -= 1;
+        }
+        this.children.splice(existingIndex, 1);
+      }
+
+      this.children.splice(targetIndex, 0, child);
       return child;
     },
     remove() {
@@ -118,7 +182,19 @@ function createMockLayer(paths = []) {
       return this;
     },
     insertChildren(index, children) {
-      this.children.splice(index, 0, ...children);
+      var targetIndex = index;
+
+      children.forEach(function(child) {
+        var existingIndex = this.children.indexOf(child);
+        if (existingIndex !== -1) {
+          if (existingIndex < targetIndex) {
+            targetIndex -= 1;
+          }
+          this.children.splice(existingIndex, 1);
+        }
+      }, this);
+
+      this.children.splice(targetIndex, 0, ...children);
       return children;
     }
   };

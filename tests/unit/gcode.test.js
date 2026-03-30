@@ -142,9 +142,11 @@ describe('gcode SLICE A: Header, Footer, and Pump Commands', () => {
     // Level 0 factory setup: minimal paper stub with project support
     global.paper = {
       Point: createMockPoint,
+      CompoundPath: function MockCompoundPath() {},
       project: {
         activeLayer: createMockLayer([])
       },
+      fillTracePath: () => {},
       // Mock helpers that gcode.js will attach to paper
       layerContainsCompoundPaths: () => false,
       shapeFillPath: () => {},
@@ -330,9 +332,11 @@ describe('gcode SLICE B: Color Grouping and Travel Sorting', () => {
   beforeEach(() => {
     global.paper = {
       Point: createMockPoint,
+      CompoundPath: function MockCompoundPath() {},
       project: {
         activeLayer: createMockLayer([])
       },
+      fillTracePath: () => {},
       layerContainsCompoundPaths: () => false,
       shapeFillPath: () => {},
       previewCam: () => {},
@@ -460,12 +464,13 @@ describe('gcode SLICE B: Color Grouping and Travel Sorting', () => {
    * output differentiates them in comments.
    */
   test('distinguishes stroke paths from fill paths in output', () => {
+    const settingsWithLineFill = { ...mockSettings, useLineFill: true };
     const strokePath = createMockPath([{ x: 0, y: 0 }, { x: 1, y: 0 }], { fill: false, color: 0 });
     const fillPath = createMockPath([{ x: 2, y: 0 }, { x: 3, y: 0 }], { fill: true, color: 0 });
 
     const layer = createMockLayer([strokePath, fillPath]);
 
-    const gcode = renderer(layer, mockSettings);
+    const gcode = renderer(layer, settingsWithLineFill);
 
     expect(gcode).toContain('Starting stroke path');
     expect(gcode).toContain('Starting fill path');
