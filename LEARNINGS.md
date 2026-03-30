@@ -92,3 +92,19 @@ Use this template for each new entry:
 - Resolution: Removed the stale `npm start` bullet from the Prompt-Ready Usage list (leaving only the `npm run smoke` bullet) and updated the remaining `npm start` reference in the Overall validation pass criteria block to `npm run smoke`.
 - Rule: When updating a doc to rename a command, search the entire file for the old command name before committing — do not only add the new line without removing the old one.
 - Affected files: docs/10_validation_contract.md.
+
+### 2026-03-29 - Jest + Electron: paper Global Assigned At Factory Invocation Time
+
+- Context: Issue #12 (US-202) — bootstrap Jest test harness with a representative passing test for `src/gcode.js`.
+- Problem: `gcode.js` exports a factory function that, when called, immediately assigns three helpers (`shapeFillPath`, `layerContainsCompoundPaths`, `previewCam`) onto the global `paper` object at the top level of the factory body — not inside the returned renderer. Any test that calls `gcodeFactory()` fails with `ReferenceError: paper is not defined` unless a stub is in place first.
+- Resolution: Added `beforeEach(() => { global.paper = {}; })` / `afterEach(() => { delete global.paper; })` in the test file. A plain empty object is sufficient because the factory only uses `paper` for property assignment; no Paper.js canvas or DOM methods are invoked at factory-call time.
+- Rule: Before writing tests for any PancakePainter module, grep the module for `paper.` at the module or factory body level (not nested in callbacks). If such assignments exist at factory invocation time, add a minimal `global.paper = {}` stub in `beforeEach`. Document any deferred full Paper.js mock work as a US-203 follow-up.
+- Affected files: tests/unit/gcode.test.js, tests/README.md.
+
+### 2026-03-29 - VS Code Buffer vs. Disk: multi_replace_string_in_file May Leave Unsaved Edits
+
+- Context: Issue #12 (US-202) — multi_replace_string_in_file was used to update package.json scripts.
+- Problem: `multi_replace_string_in_file` applied edits to the VS Code in-memory buffer (visible via `read_file`), but the changes were NOT flushed to disk. Terminal commands (`Get-Content`, `node -e "require('./package.json')"`, `npm run`) all read the old file. The scripts `lint` and `jest` appeared to be added but were missing on disk.
+- Resolution: Used PowerShell JSON manipulation (`Get-Content | ConvertFrom-Json → Add-Member → ConvertTo-Json | Set-Content`) to write the correct scripts directly to disk. Verified with both `node -e` and `npm test`.
+- Rule: After any `multi_replace_string_in_file` or `replace_string_in_file` operation on JSON config files, always run a terminal command (`node -e "require('./package.json')"` or equivalent) to confirm the change was persisted to disk before proceeding.
+- Affected files: package.json.

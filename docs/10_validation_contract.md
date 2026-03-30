@@ -14,8 +14,9 @@ broader automated test suite is introduced.
 - Default shell target: Windows PowerShell
 - Authoritative command set (current state):
   1. `npm install`
-  2. `npm test`
-  3. `npm run smoke` (smoke check only when startup behavior changed)
+  2. `npm run lint` (JSHint) — or `npm test` to run lint + unit tests together
+  3. `npm run jest` (Jest unit tests)
+  4. `npm run smoke` (smoke check only when startup behavior changed)
 - CI provider currently used by this repository: Travis CI (`.travis.yml`)
 
 ## Current Validation Commands
@@ -25,9 +26,15 @@ broader automated test suite is introduced.
    - Purpose: ensure local dependency graph matches repository lock state
 
 2. Lint/check baseline
-   - Command: `npm test`
+   - Command: `npm run lint` (or `npm test` to chain lint + unit tests)
    - Current script target: `jshint src menus --exclude src/libs,node_modules`
    - Purpose: enforce repository lint baseline before review or merge
+
+2a. Unit tests
+   - Command: `npm run jest`
+   - Runner: Jest 29 (`jest.config.js`, tests in `tests/unit/`)
+   - Purpose: automated unit test coverage of application modules
+   - Note: `npm test` chains lint and Jest automatically.
 
 3. Startup smoke validation (conditional)
    - Command: `npm run smoke`
@@ -43,7 +50,7 @@ broader automated test suite is introduced.
 Use this order unless a prompt explicitly narrows scope:
 
 1. `npm install`
-2. `npm test`
+2. `npm test` (chains `npm run lint` + `npm run jest`)
 3. `npm run smoke` only if startup behavior changed
 
 Rationale:
@@ -68,7 +75,9 @@ If new lint debt appears but cannot be safely fixed in-scope:
 | Check | Pass condition | Fail condition |
 |---|---|---|
 | `npm install` | exits 0 with dependencies installed | install error, lock/dependency resolution failure |
-| `npm test` | exits 0 | JSHint reports one or more errors or command execution fails |
+| `npm run lint` | exits 0 | JSHint reports one or more errors or command execution fails |
+| `npm run jest` | exits 0, all tests pass | any test fails, or Jest cannot start |
+| `npm test` | exits 0 (both lint and Jest pass) | either lint or Jest fails |
 | `npm run smoke` (when required) | app process remains alive for check window (exit 0) | process exits prematurely or cannot start (exit 1) |
 
 Overall validation pass criteria:
@@ -80,8 +89,8 @@ Overall validation pass criteria:
 
 Prompt workflows should consume this command set directly:
 
-- Implementation stage: run `npm test`; add `npm run smoke` when startup behavior
-  changes
+- Implementation stage: run `npm test` (lint + Jest); add `npm run smoke` when
+  startup behavior changes
 - Review stage: re-run `npm test` after review fixes
 - Merge stage: verify `npm test` on the integration branch/default branch state
 

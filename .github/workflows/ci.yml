@@ -1,0 +1,57 @@
+# ci.yml — Continuous integration workflow for PancakePainter
+#
+# Runs on every push and pull request targeting master.
+# Executes the repository-native validation chain:
+#   npm run lint  — JSHint static analysis of src/ and menus/
+#   npm run jest  — Jest unit tests under tests/
+#
+# Node 20 LTS is used because it is the current Active LTS release and
+# the codebase's devDependencies (jest@29, jshint@2) are compatible with
+# it. The workflow does not attempt to start the Electron app (that
+# requires a display and is covered by the manual smoke-check procedure
+# in docs/12_startup_smoke_check.md / npm run smoke).
+
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Lint & Unit Tests (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # Node 20 LTS (Active) and Node 22 LTS (Maintenance) — mirrors the
+        # developer environment (22.x locally). Node 20 is the minimum
+        # supported version for jest@29.
+        node-version: [20, 22]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up the requested Node.js version with the built-in npm cache so
+      # repeated runs restore node_modules efficiently.
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      # Use `npm ci` (clean install) rather than `npm install` so that the
+      # exact locked versions from package-lock.json are installed and no
+      # accidental devDependency drift goes undetected.
+      - name: Install dependencies
+        run: npm ci
+
+      # `npm test` chains `npm run lint` (JSHint) followed by `npm run jest`
+      # (Jest unit tests). Both must exit 0 for the job to pass.
+      - name: Run lint and unit tests
+        run: npm test
