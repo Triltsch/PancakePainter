@@ -179,7 +179,7 @@ module (e.g., `src/state/file-state.js`). Pass state snapshots to main
 process only when needed (e.g., for window title updates) via a dedicated
 IPC message.
 
-**Risk classification**: Critical — subtle runtime breakage under isolation,
+**Risk classification**: High — subtle runtime breakage under isolation,
 no immediate crash but state mutations silently lost.
 
 ---
@@ -206,8 +206,8 @@ _           — require('underscore')
 - `mainWindow.dialog(...)` — image import dialog
 - `i18n.t(...)` — string translation
 - `toastr.*` — notifications
-- `fs.*` — not directly in editor.ps.js but used in helpers loaded by it
-- `path` — loaded in helpers
+- `fs.*` — directly used in `editor.ps.js` (for example, `fs.readFileSync(...)`) and in helpers loaded by it
+- `path` — directly used in `editor.ps.js` (for example, `path.parse(...)`) and in helpers
 
 **Risk**: If any of the above globals are undefined (due to
 `nodeIntegration: false` or `remote` removal), the PaperScript module fails
