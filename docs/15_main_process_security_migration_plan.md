@@ -329,7 +329,7 @@ usage.
 | IPC channel mismatch between host and webview after registry introduction | Low | Medium | Registry validation at `on()` and `sendToHost()` boundaries; throw on unregistered channel in development |
 | `helper.autotrace.js` path injection breaks callers | Low | Low | Pass paths explicitly; keep existing signature for backward compatibility until all callers updated |
 | Webview CORS issues after removing `disablewebsecurity` | High | Medium | Webview content is file-protocol and local; verify content origin; document any cross-origin fetch needs |
-| `contextBridge` does not support all data types (e.g., functions) | Medium | Medium | `contextBridge` serializes structured data only; wrap any callback requirement in IPC round-trip |
+| `contextBridge` structured-clone limits (no function or class instance crossing) | Medium | Medium | Values crossing the `contextBridge` boundary must be structured-cloneable (no functions, DOM nodes, class instances). Keep preload APIs plain-data for args/returns, and use wrapper patterns like `onClose(cb)` / `onMenuClick(cb)` where the renderer callback stays in renderer scope and preload wires IPC events to that callback. |
 | Regression in platform-specific menu behavior | Low | Medium | Validate both `menu-darwin.js` and `menu-win32.js` in Slice S5-C; keep platform detection logic unchanged |
 
 ---
