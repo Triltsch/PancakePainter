@@ -106,3 +106,7 @@ Creating agent definition files before a role is active adds unmaintained files 
 **JSON config edits: verify on disk, not in the VS Code buffer**
 `replace_string_in_file` and `multi_replace_string_in_file` may update the in-memory buffer without flushing to disk; terminal commands and `npm run` read the stale on-disk version.
 - Rule: After editing any JSON config file (e.g., `package.json`), run `node -e "require('./package.json')"` in a terminal to confirm the change was persisted before proceeding.
+
+**Canonical repository source has precedence over ambient context metadata**
+Workspace or tool context can point to similarly named upstream forks and cause issue/PR operations in the wrong repository.
+- Rule: Use `.github/copilot-instructions.md` repository URL as the hard canonical target for all `gh` and MCP owner/repo operations unless the user explicitly overrides it in the current turn.
