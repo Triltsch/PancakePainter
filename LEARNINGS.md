@@ -63,6 +63,18 @@ gcode.js uses `_.isArray()`, `_.each()`, and `_.extend()` throughout, causing `R
 Mock paths use `length` property for preshutoff and travel-sort thresholds in gcode.js. Simple Euclidean distance from first to last point can underestimate path length for multi-segment paths.
 - Rule: Calculate `length` as sum of distances between consecutive points: `sum of sqrt((p[i].x - p[i-1].x)^2 + (p[i].y - p[i-1].y)^2)`.
 
+**File persistence tests should isolate dialog/UI boundaries from file logic**
+Testing save/open directly through renderer menu handlers requires DOM and Electron remote setup, causing brittle tests that do not improve logic confidence.
+- Rule: Keep save/open behavior in dependency-injected helpers (e.g. pass `fs`, `paper`, `toastr`, `i18n`, `currentFile`) and unit-test these helpers independently.
+
+**Settings loading should parse user config from file contents, not `require()`**
+Using `require(configPath)` caches parsed JSON and can hide runtime changes in repeated reads/tests.
+- Rule: Parse config files with `JSON.parse(fs.readFileSync(path))` for predictable reload behavior and easier mocking.
+
+**Graceful file-open failure should verify existence before load delegate**
+Delegating directly to `paper.loadPBP(filePath)` without checking file readability obscures missing/unreadable path errors.
+- Rule: For open flow unit boundaries, check `existsSync` and `readFileSync` first, then call parser/loader; catch and surface errors consistently.
+
 ---
 
 ## Documentation / Markdown

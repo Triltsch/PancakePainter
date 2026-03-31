@@ -63,6 +63,21 @@ minimal boundary strategy is defined in US-203
 Level 1 Paper-Lite fixtures for business logic. Reserve geometry semantics for
 integration-level runtime tests.
 
+### File I/O and settings mocking
+
+US-302 introduces isolated tests for file persistence and settings loading
+without touching the real filesystem or starting Electron:
+
+- Mock filesystem calls (`existsSync`, `readFileSync`, `writeFileSync`,
+  `removeSync`) with Jest stubs or in-memory maps.
+- Keep file save/open logic in testable helper boundaries
+  (`src/helpers/helper.file-io.js`) and pass dependencies as arguments.
+- Keep settings persistence logic in a testable helper boundary
+  (`src/helpers/helper.settings-store.js`) and verify default fallback behavior
+  on malformed or missing config files.
+- Treat Electron dialog/IPC concerns as caller boundaries and test only the
+  pure file/settings logic in unit tests.
+
 ### Currently testable without mocking
 
 The following modules can be required and partially tested in a plain Node.js
@@ -76,18 +91,17 @@ environment without any Electron or Paper.js mocking:
 
 ## Coverage Baseline
 
-Current baseline (updated Sprint 3, US-301):
+Current baseline (updated Sprint 3, US-302):
 
 | Metric | Baseline |
 |--------|----------|
-| Statements | 71.36% |
-| Branches | 63.79% |
-| Functions | 86.11% |
-| Lines | 74.03% |
+| Statements | 73.89% |
+| Branches | 65.94% |
+| Functions | 85.10% |
+| Lines | 76.51% |
 
 Previous baseline (Sprint 2, US-202): ~0% (sample test only)
 
-Coverage improvement reflects addition of Slice A (Header/Footer/Pump Commands)
-and Slice B (Color Grouping/Travel Sorting) tests. Slice C (Geometry Semantics)
-is deferred per the boundary strategy. Run `npm run jest -- --coverage` to capture
+Coverage improvement reflects addition of US-301 GCODE tests and US-302 file
+I/O and settings persistence tests. Run `npm run jest -- --coverage` to capture
 the current baseline and compare against future sprint work.
