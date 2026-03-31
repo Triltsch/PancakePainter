@@ -95,6 +95,10 @@ Two-space indentation on sub-bullets renders as flat lists in CommonMark/GitHub 
 Adding a corrected line without removing the old one leaves contradictory guidance in the same file.
 - Rule: When renaming any command or script reference in docs, search the entire file for the old name before committing.
 
+**Markdown tables: avoid leading double pipes**
+Using `||` at row starts creates an unintended empty first column in many renderers and can misalign headings.
+- Rule: Use standard table syntax with single `|` separators and verify alignment in GitHub preview.
+
 ---
 
 ## Agent Tooling
