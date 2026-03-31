@@ -110,3 +110,7 @@ Creating agent definition files before a role is active adds unmaintained files 
 **Canonical repository source has precedence over ambient context metadata**
 Workspace or tool context can point to similarly named upstream forks and cause issue/PR operations in the wrong repository.
 - Rule: Use `.github/copilot-instructions.md` repository URL as the hard canonical target for all `gh` and MCP owner/repo operations unless the user explicitly overrides it in the current turn.
+
+**`gh pr view` JSON fields differ across GH CLI versions**
+Some GH CLI builds do not support `--json reviewComments`, even though review data is available via other endpoints.
+- Rule: For PR review discovery, use `gh pr view --json reviews,comments` plus `gh api repos/{owner}/{repo}/pulls/{number}/comments` (and GraphQL `reviewThreads` for `isResolved`/`isOutdated`) when `reviewComments` is unavailable.
