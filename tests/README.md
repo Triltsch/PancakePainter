@@ -91,17 +91,18 @@ environment without any Electron or Paper.js mocking:
 
 ## Coverage Baseline
 
-Current baseline (updated Sprint 3, US-302):
+Current baseline (updated Sprint 3, US-303):
 
 | Metric | Baseline |
 |--------|----------|
-| Statements | 73.89% |
-| Branches | 65.94% |
-| Functions | 85.10% |
-| Lines | 76.51% |
+| Statements | 52.98% |
+| Branches | 45.38% |
+| Functions | 63.33% |
+| Lines | 54.29% |
 
 Previous baseline (Sprint 2, US-202): ~0% (sample test only)
 
-Coverage improvement reflects addition of US-301 GCODE tests and US-302 file
-I/O and settings persistence tests. Run `npm run jest -- --coverage` to capture
-the current baseline and compare against future sprint work.
+Coverage now includes additional helper-module measurement from US-303
+(`helper.undo.js`, `helper.utils.js`) in addition to US-301/US-302 tests.
+Run `npm run jest -- --coverage` to capture the current baseline and compare
+against future sprint work.

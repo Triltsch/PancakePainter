@@ -75,6 +75,14 @@ Using `require(configPath)` caches parsed JSON and can hide runtime changes in r
 Delegating directly to `paper.loadPBP(filePath)` without checking file readability obscures missing/unreadable path errors.
 - Rule: For open flow unit boundaries, check `existsSync` and `readFileSync` first, then call parser/loader; catch and surface errors consistently.
 
+**Undo helper can be tested with plain project/view stubs, no canvas runtime**
+`helper.undo.js` state operations rely on `project.exportJSON/importJSON`, layer activation, and `view.update` calls, not on actual Paper.js rendering.
+- Rule: Unit tests for undo should stub `paper.project`, `paper.view`, and selection helpers (`deselect/reselect/emptyProject`) with plain objects.
+
+**Utility helper tests should mock top-level optional dependencies even when testing pure functions**
+`helper.utils.js` requires modules like `electron-canvas-to-buffer`, `fs-plus`, and `progress-promise` at helper factory creation time.
+- Rule: In Jest, mock these modules up front so pure utility function tests (`rgbToHex`, `colorStringToArray`, `fitScale`, etc.) remain isolated and runtime-agnostic.
+
 ---
 
 ## Documentation / Markdown
