@@ -10,6 +10,11 @@ var ipcRenderer = electron.ipcRenderer;
 var remote = require('@electron/remote');
 var channels = require('../ipc-channels');
 
+// Keep legacy renderer modules working during staged remote migration.
+if (!electron.remote || electron.remote !== remote) {
+  electron.remote = remote;
+}
+
 var allowedIn = channels.autotrace.IN.concat(channels.export.IN);
 var allowedOut = channels.autotrace.OUT.concat(channels.export.OUT);
 
@@ -47,7 +52,10 @@ function getWebviewBridge() {
 
 var webviewBridge = getWebviewBridge();
 
-if (contextBridge && typeof contextBridge.exposeInMainWorld === 'function') {
+if (contextBridge &&
+    typeof contextBridge.exposeInMainWorld === 'function' &&
+    typeof process !== 'undefined' &&
+    process.contextIsolated === true) {
   contextBridge.exposeInMainWorld('webviewBridge', webviewBridge);
 } else {
   window.webviewBridge = webviewBridge;

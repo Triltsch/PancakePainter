@@ -10,6 +10,11 @@ var contextBridge = electron.contextBridge;
 var ipcRenderer = electron.ipcRenderer;
 var remote = require('@electron/remote');
 
+// Keep legacy renderer modules working during staged remote migration.
+if (!electron.remote || electron.remote !== remote) {
+  electron.remote = remote;
+}
+
 function getAppBridge() {
   var app = remote.app;
   var currentWindow = remote.getCurrentWindow();
@@ -64,7 +69,10 @@ function getAppBridge() {
 
 var appBridge = getAppBridge();
 
-if (contextBridge && typeof contextBridge.exposeInMainWorld === 'function') {
+if (contextBridge &&
+    typeof contextBridge.exposeInMainWorld === 'function' &&
+    typeof process !== 'undefined' &&
+    process.contextIsolated === true) {
   contextBridge.exposeInMainWorld('appBridge', appBridge);
 } else {
   window.appBridge = appBridge;

@@ -6,6 +6,9 @@
   "author": "techninja",
   "stage": "development",
   "electronVersion": "28.3.3",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "license": "Apache-2.0",
   "copyright": "Copyright (C) PancakeBot Inc., all rights reserved. Code under Apache v2.0 free and open source license.",
   "releaseInfo": {

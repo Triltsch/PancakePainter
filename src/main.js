@@ -22,6 +22,15 @@ var i18n = require('i18next');
 
 remoteMain.initialize();
 
+app.on('web-contents-created', function(contentsEvent, contents) {
+  void contentsEvent;
+  if (contents &&
+      typeof contents.getType === 'function' &&
+      contents.getType() === 'webview') {
+    remoteMain.enable(contents);
+  }
+});
+
 // Report crashes to our server.
 //require('crash-reporter').start();
 
@@ -115,6 +124,8 @@ function windowInit() {
           // is introduced.
           contextIsolation: false,
           nodeIntegration: true,
+          // Required in Electron 28+ for embedded webview windows.
+          webviewTag: true,
           preload: path.join(__dirname, 'preload', 'main-preload.js')
         }
       };
