@@ -80,8 +80,7 @@ function getAppBridge() {
     },
     menu: {
       onMenuClick: function(handler) {
-        return ipcRenderer.on('menu:click', function(event, key) {
-          void event;
+        return ipcRenderer.on('menu:click', function(event, key) { /* jshint ignore:line */
           handler(key);
         });
       }

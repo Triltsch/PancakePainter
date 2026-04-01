@@ -15,6 +15,15 @@ jest.mock('../../../menus/menu-win32', () => jest.fn(() => ([
   }
 ])));
 
+jest.mock('../../../menus/menu-darwin', () => jest.fn(() => ([
+  {
+    key: 'file.title',
+    submenu: [
+      { key: 'file.open' }
+    ]
+  }
+])));
+
 const menuInit = require('../../../menus/menu-init');
 
 describe('menu-init', () => {
