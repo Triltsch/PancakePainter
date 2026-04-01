@@ -11,9 +11,8 @@
 var _ = require('underscore');
 var $ = require('jquery');
 var jimp = require('jimp');
-var ipc = window.ipc = require('electron').ipcRenderer;
-var remote = require('electron').remote;
-var app = window.app = remote.app;
+var ipc = window.ipc = window.webviewBridge.ipc;
+var app = window.app = window.webviewBridge.app;
 var path = require('path');
 var pickColorMode = false;
 
@@ -100,7 +99,14 @@ paper.svgLayer = svgLayer;
 
 // Load Salient Helpers
 _.each(['utils', 'autotrace'], function(helperName) {
-  paper[helperName] = require('../helpers/helper.' + helperName)(paper);
+  if (helperName === 'autotrace') {
+    paper[helperName] = require('../helpers/helper.' + helperName)(paper, {
+      appPath: app.getAppPath(),
+      tempPath: app.getPath('temp')
+    });
+  } else {
+    paper[helperName] = require('../helpers/helper.' + helperName)(paper);
+  }
 });
 
 // Set colorPickMode on/off.

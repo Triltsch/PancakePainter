@@ -35,7 +35,14 @@ var toolSelect = require('./tools/tool.select')(paper);
 // Load Helpers
 // TODO: Load via files in dir, API style.
 _.each(['undo', 'clipboard', 'utils', 'autotrace'], function(helperName) {
-  paper[helperName] = require('./helpers/helper.' + helperName)(paper);
+  if (helperName === 'autotrace') {
+    paper[helperName] = require('./helpers/helper.' + helperName)(paper, {
+      appPath: app.getAppPath(),
+      tempPath: app.getPath('temp')
+    });
+  } else {
+    paper[helperName] = require('./helpers/helper.' + helperName)(paper);
+  }
 });
 
 paper.setCursor = function(type) {

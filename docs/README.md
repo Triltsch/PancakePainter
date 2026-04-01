@@ -75,8 +75,8 @@ This directory contains a complete technical analysis of the PancakePainter code
 
 ### ⚠️ High-Risk Areas
 
-- **Electron migration still in progress** — preload/IPC hardening remains to complete
-- **Legacy renderer/main coupling** — significant `remote` compatibility usage still present
+- **Electron migration still in progress** — dialog modernization and stricter Node hardening are still pending
+- **Legacy renderer/main coupling** — global renderer state is still heavy, even though `remote` has been removed from the main critical path
 - **Heavy global state** — window.paper, app globals, tight coupling
 - **Legacy jQuery pattern** — outdated DOM manipulation approach
 - **Monolithic renderer process** — large app.js with mixed concerns

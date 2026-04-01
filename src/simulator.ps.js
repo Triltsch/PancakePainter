@@ -9,9 +9,8 @@
 var $ = window.$ = require('jquery');
 var _ = window._ = require('underscore');
 var gcRender = require('../gcode.js')(); // GCODE renderer.
-var ipc = window.ipc = require('electron').ipcRenderer;
-var remote = require('electron').remote;
-var app = window.app = remote.app;
+var ipc = window.ipc = window.webviewBridge.ipc;
+var app = window.app = window.webviewBridge.app;
 
 var currentShade = 3;
 var ac = app.constants;

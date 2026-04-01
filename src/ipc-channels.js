@@ -7,6 +7,7 @@ module.exports = {
   autotrace: {
     IN: ['loadTraceImage', 'renderTrigger', 'pickColor', 'cleanup'],
     OUT: [
+      'paperReady',
       'initLoaded',
       'renderComplete',
       'clonePreview',
@@ -16,6 +17,6 @@ module.exports = {
   },
   export: {
     IN: ['loadInit', 'renderTrigger', 'cleanup'],
-    OUT: ['initLoaded', 'renderComplete']
+    OUT: ['paperReady', 'initLoaded', 'renderComplete']
   }
 };

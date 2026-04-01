@@ -32,7 +32,6 @@
     "watch": "sass --watch src/styles/index.scss:src/styles/index.css"
   },
   "dependencies": {
-    "@electron/remote": "^2.1.2",
     "autotrace": "0.0.2",
     "datauri": "^0.7.1",
     "electron-canvas-to-buffer": "^2.0.0",

@@ -7,16 +7,38 @@
 var electron = require('electron');
 var contextBridge = electron.contextBridge;
 var ipcRenderer = electron.ipcRenderer;
-var remote = require('@electron/remote');
 var channels = require('../ipc-channels');
-
-// Keep legacy renderer modules working during staged remote migration.
-if (!electron.remote || electron.remote !== remote) {
-  electron.remote = remote;
-}
+var bootstrap = ipcRenderer.sendSync('app:get-bootstrap') || {};
 
 var allowedIn = channels.autotrace.IN.concat(channels.export.IN);
 var allowedOut = channels.autotrace.OUT.concat(channels.export.OUT);
+var allowedRequireModules = [
+  'jquery',
+  'underscore',
+  'jimp',
+  'path',
+  '../gcode.js'
+];
+var allowedRequirePattern = /^\.\.\/helpers\/helper\.(utils|autotrace)$/;
+
+function createRequireShim() {
+  return function(moduleName) {
+    if (typeof moduleName !== 'string') {
+      throw new Error('Blocked require of invalid module specifier');
+    }
+
+    if (
+      allowedRequireModules.indexOf(moduleName) === -1 &&
+      !allowedRequirePattern.test(moduleName)
+    ) {
+      throw new Error(
+        'Blocked require of non-allowlisted module: ' + moduleName
+      );
+    }
+
+    return require(moduleName);
+  };
+}
 
 function assertAllowed(allowedList, channel, direction) {
   if (allowedList.indexOf(channel) === -1) {
@@ -25,17 +47,18 @@ function assertAllowed(allowedList, channel, direction) {
 }
 
 function getWebviewBridge() {
-  var app = remote.app;
-
   return {
     app: {
       getPath: function(name) {
         if (name !== 'temp') {
           throw new Error('Blocked app.getPath request: ' + name);
         }
-        return app.getPath(name);
+        return ipcRenderer.sendSync('app:get-path', name);
       },
-      constants: app.constants
+      getAppPath: function() {
+        return bootstrap.appPath;
+      },
+      constants: bootstrap.constants || {}
     },
     ipc: {
       on: function(channel, handler) {
@@ -51,12 +74,20 @@ function getWebviewBridge() {
 }
 
 var webviewBridge = getWebviewBridge();
+var requireShim = createRequireShim();
+var processShim = {
+  platform: process.platform
+};
 
 if (contextBridge &&
     typeof contextBridge.exposeInMainWorld === 'function' &&
     typeof process !== 'undefined' &&
     process.contextIsolated === true) {
   contextBridge.exposeInMainWorld('webviewBridge', webviewBridge);
+  contextBridge.exposeInMainWorld('require', requireShim);
+  contextBridge.exposeInMainWorld('process', processShim);
 } else {
   window.webviewBridge = webviewBridge;
+  window.require = requireShim;
+  window.process = processShim;
 }
