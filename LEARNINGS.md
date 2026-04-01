@@ -118,3 +118,11 @@ Workspace or tool context can point to similarly named upstream forks and cause 
 **`gh pr view` JSON fields differ across GH CLI versions**
 Some GH CLI builds do not support `--json reviewComments`, even though review data is available via other endpoints.
 - Rule: For PR review discovery, use `gh pr view --json reviews,comments` plus `gh api repos/{owner}/{repo}/pulls/{number}/comments` (and GraphQL `reviewThreads` for `isResolved`/`isOutdated`) when `reviewComments` is unavailable.
+
+**Modern Electron migration can stay startup-safe via `@electron/remote` as a temporary bridge**
+Jumping to a supported Electron baseline before removing renderer `remote` calls can block startup unless compatibility is retained during transition.
+- Rule: For staged migration slices, initialize `@electron/remote/main` in `src/main.js`, enable it per BrowserWindow, and register preload scaffolding before enforcing hardened isolation defaults.
+
+**Preload bridge exposure must match isolation mode**
+`contextBridge.exposeInMainWorld` is only valid under isolated contexts; calling it while `contextIsolation: false` can crash preload initialization.
+- Rule: In preload scripts, gate `exposeInMainWorld` with `process.contextIsolated === true` and keep a `window.*Bridge` fallback during staged migrations.

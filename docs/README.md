@@ -62,7 +62,7 @@ This directory contains a complete technical analysis of the PancakePainter code
 |--------|--------|
 | **Type** | Electron Desktop Application |
 | **Primary Language** | JavaScript (ES5) |
-| **Framework** | Electron 1.0.1 (2016-era, OUTDATED) |
+| **Framework** | Electron 28.3.3 (migration in progress) |
 | **Graphics** | Paper.js 0.10.2 |
 | **Platforms** | Windows, macOS, Linux |
 | **Package Manager** | npm |
@@ -75,8 +75,8 @@ This directory contains a complete technical analysis of the PancakePainter code
 
 ### ⚠️ High-Risk Areas
 
-- **Severely outdated Electron version** (1.0.1 from 2016) — major security and stability concerns
-- **No automated test suite** — only linting (jshint)
+- **Electron migration still in progress** — preload/IPC hardening remains to complete
+- **Legacy renderer/main coupling** — significant `remote` compatibility usage still present
 - **Heavy global state** — window.paper, app globals, tight coupling
 - **Legacy jQuery pattern** — outdated DOM manipulation approach
 - **Monolithic renderer process** — large app.js with mixed concerns

@@ -6,17 +6,30 @@
 "use strict";
 if (require('electron-squirrel-startup')) return;
 const path = require('path');
+const electron = require('electron');
+const remoteMain = require('@electron/remote/main');
 
-var app = require('electron').app;  // Module to control application life.
+var app = electron.app;  // Module to control application life.
 var appPath = app.getAppPath();
 var fs = require('fs-plus');
 var mainConfig = require('./helpers/helper.main-config');
 var createSettingsStore = require('./helpers/helper.settings-store');
 
 // Module to create native browser window.
-var BrowserWindow = require('electron').BrowserWindow;
-var dialog = require('electron').dialog;
+var BrowserWindow = electron.BrowserWindow;
+var dialog = electron.dialog;
 var i18n = require('i18next');
+
+remoteMain.initialize();
+
+app.on('web-contents-created', function(contentsEvent, contents) {
+  void contentsEvent;
+  if (contents &&
+      typeof contents.getType === 'function' &&
+      contents.getType() === 'webview') {
+    remoteMain.enable(contents);
+  }
+});
 
 // Report crashes to our server.
 //require('crash-reporter').start();
@@ -105,7 +118,16 @@ function windowInit() {
         resizable: true,
         icon: path.join(appPath, 'resources', 'app.png'),
         title: "PancakePainter",
-        fullscreenable: false // Workaround for fullscreen OSX bug :'(
+        fullscreenable: false, // Workaround for fullscreen OSX bug :'(
+        webPreferences: {
+          // Keep legacy renderer behavior during migration while preload
+          // is introduced.
+          contextIsolation: false,
+          nodeIntegration: true,
+          // Required in Electron 28+ for embedded webview windows.
+          webviewTag: true,
+          preload: path.join(__dirname, 'preload', 'main-preload.js')
+        }
       };
 
       // Centered or fixed window position?
@@ -118,6 +140,7 @@ function windowInit() {
 
       // Create the main application window.
       mainWindow = new BrowserWindow(windowSettings);
+      remoteMain.enable(mainWindow.webContents);
 
       // Window wrapper for dialog (can't include module outside of this) :P
       mainWindow.dialog = function(options, callback) {
