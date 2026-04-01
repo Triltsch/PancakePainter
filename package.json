@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "author": "techninja",
   "stage": "development",
-  "electronVersion": "1.0.1",
+  "electronVersion": "28.3.3",
   "license": "Apache-2.0",
   "copyright": "Copyright (C) PancakeBot Inc., all rights reserved. Code under Apache v2.0 free and open source license.",
   "releaseInfo": {
@@ -29,6 +29,7 @@
     "watch": "sass --watch src/styles/index.scss:src/styles/index.css"
   },
   "dependencies": {
+    "@electron/remote": "^2.1.2",
     "autotrace": "0.0.2",
     "datauri": "^0.7.1",
     "electron-canvas-to-buffer": "^2.0.0",
@@ -52,7 +53,7 @@
     "url": "https://github.com/PancakeBot/PancakePainter.git"
   },
   "devDependencies": {
-    "electron-prebuilt": "1.0.1",
+    "electron": "^28.3.3",
     "jest": "^29.7.0",
     "jshint": "^2.9.2"
   }

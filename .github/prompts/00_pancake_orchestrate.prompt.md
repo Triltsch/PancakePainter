@@ -32,6 +32,9 @@ Execute the following stages in sequence:
    - Verify CI status on `main` using the repository's configured CI provider (timeout target: 10 minutes).
    - If CI fails: diagnose from provider logs or local CI command output, apply targeted hotfix commits, re-verify.
    - If still failing after 2 fix attempts: stop as `blocked` and report exact failures and recovery action.
+7. Close the issue:
+   - Close the originating GitHub issue via `gh issue close <N> --repo <owner>/<repo>`.
+   - Add a closing comment that references the merged PR number, merge commit SHA, and the primary artifact or change delivered.
 
 # Approval gates
 
