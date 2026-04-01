@@ -3,13 +3,15 @@
  * trace integration and handling import of autotrace data for printing.
  **/
 
-module.exports = function(paper) {
-  var app = require('electron').remote.app;
+module.exports = function(paper, appPaths) {
   var _ = require('underscore');
   var fs = require('fs-plus');
   var path = require('path');
   var autotracer = require('autotrace');
-  var outFile =  path.join(app.getPath('temp'), 'pancakepainter_temptrace.svg');
+  var resolvedPaths = appPaths || {};
+  var appPath = resolvedPaths.appPath || process.cwd();
+  var tempPath = resolvedPaths.tempPath || process.cwd();
+  var outFile = path.join(tempPath, 'pancakepainter_temptrace.svg');
 
   var autotrace = {
     settings: {
@@ -107,7 +109,7 @@ module.exports = function(paper) {
     switch (process.platform) {
       case 'win32':
         binPath = path.join(
-          app.getAppPath(),
+          appPath,
           'resources',
           'win32',
           'bin',
@@ -117,7 +119,7 @@ module.exports = function(paper) {
         break;
       case 'darwin':
         binPath = path.join(
-          app.getAppPath(),
+          appPath,
           'resources',
           'darwin',
           'bin',

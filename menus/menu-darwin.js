@@ -2,13 +2,10 @@
  * @file Menu "module", provides menu for Mac/darwin only.
  */
 "use strict";
-module.exports = function applyTemplate() {
-  var remote = require('electron').remote;
-  var app = remote.app;
-  var BrowserWindow = remote.BrowserWindow;
-  var path = require('path');
-  var packageData = require(path.join(app.getAppPath(), 'package.json'));
-  var appName = packageData.name;
+module.exports = function applyTemplate(dependencies) {
+  var app = dependencies.app;
+  var BrowserWindow = dependencies.BrowserWindow;
+  var appName = dependencies.appName;
 
   var template = [
     {

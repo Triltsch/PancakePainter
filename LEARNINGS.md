@@ -126,3 +126,7 @@ Jumping to a supported Electron baseline before removing renderer `remote` calls
 **Preload bridge exposure must match isolation mode**
 `contextBridge.exposeInMainWorld` is only valid under isolated contexts; calling it while `contextIsolation: false` can crash preload initialization.
 - Rule: In preload scripts, gate `exposeInMainWorld` with `process.contextIsolated === true` and keep a `window.*Bridge` fallback during staged migrations.
+
+**Context-isolated renderer migration needs bridge-backed state methods, not shared object references**
+Passing mutable main-process objects such as settings stores through preload is unreliable once `contextIsolation` is enabled because the renderer sees a copied/proxied view rather than shared state.
+- Rule: Expose explicit preload methods like `getSettings()`, `saveSettings()`, `resetSettings()`, and menu event subscriptions over IPC instead of mutating main-process objects directly from renderer code.

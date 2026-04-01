@@ -3,10 +3,12 @@
  * given operating system and translates keys into labels.
  **/
 "use strict";
-module.exports = function menuInit(app) {
-  var remote = require('electron').remote;
-  var Menu = remote.Menu;
-  var i18n = remote.require('i18next');
+module.exports = function menuInit(dependencies) {
+  var app = dependencies.app;
+  var BrowserWindow = dependencies.BrowserWindow;
+  var Menu = dependencies.Menu;
+  var i18n = dependencies.i18n;
+  var onMenuClick = dependencies.onMenuClick;
   var _ = require('underscore');
 
   var platform = process.platform;
@@ -16,7 +18,11 @@ module.exports = function menuInit(app) {
     platform = 'win32'; // Default to windows menu
   }
 
-  var mainMenu = require('../menus/menu-' + platform)();
+  var mainMenu = require('../menus/menu-' + platform)({
+    app: app,
+    appName: app.getName(),
+    BrowserWindow: BrowserWindow
+  });
 
   // Pre-process then apply menu to the window
   _.each(mainMenu, function(menu){
@@ -29,8 +35,8 @@ module.exports = function menuInit(app) {
         sub.label = i18n.t('menus:' + sub.key, sub.var);
         if (!sub.click) {
           // Add generic click event only if not already bound
-          sub.click = function(e) {
-            app.menuClick(e.key);
+          sub.click = function() {
+            onMenuClick(sub.key);
           };
         }
       }

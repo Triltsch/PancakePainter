@@ -8,36 +8,58 @@
 var electron = require('electron');
 var contextBridge = electron.contextBridge;
 var ipcRenderer = electron.ipcRenderer;
-var remote = require('@electron/remote');
+var fs = require('fs-plus');
+var i18n = require('i18next');
 
-// Keep legacy renderer modules working during staged remote migration.
-if (!electron.remote || electron.remote !== remote) {
-  electron.remote = remote;
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
-function getAppBridge() {
-  var app = remote.app;
-  var currentWindow = remote.getCurrentWindow();
-  var i18n = remote.require('i18next');
-  var fs = remote.require('fs-plus');
+var bootstrap = ipcRenderer.sendSync('app:get-bootstrap') || {};
 
+function getAppBridge() {
   return {
     app: {
       getVersion: function() {
-        return app.getVersion();
+        return bootstrap.version;
       },
       getPath: function(name) {
-        return app.getPath(name);
+        return ipcRenderer.sendSync('app:get-path', name);
       },
-      constants: app.constants,
-      settings: app.settings
+      getAppPath: function() {
+        return bootstrap.appPath;
+      },
+      constants: bootstrap.constants || {},
+      getSettings: function() {
+        return clone(bootstrap.settings || {});
+      },
+      saveSettings: function(settings) {
+        bootstrap.settings = ipcRenderer.sendSync(
+          'settings:save-sync',
+          settings
+        );
+        return clone(bootstrap.settings || {});
+      },
+      resetSettings: function() {
+        bootstrap.settings = ipcRenderer.sendSync('settings:reset-sync');
+        return clone(bootstrap.settings || {});
+      }
     },
     window: {
       focus: function() {
-        return currentWindow.focus();
+        return window.focus();
       },
       dialog: function(options, callback) {
-        return currentWindow.dialog(options, callback);
+        var result = ipcRenderer.sendSync('dialog:show-sync', options);
+
+        if (callback) {
+          setTimeout(function() {
+            callback(result);
+          }, 0);
+          return undefined;
+        }
+
+        return result;
       }
     },
     i18n: {
@@ -54,6 +76,14 @@ function getAppBridge() {
       },
       existsSync: function(filePath) {
         return fs.existsSync(filePath);
+      }
+    },
+    menu: {
+      onMenuClick: function(handler) {
+        return ipcRenderer.on('menu:click', function(event, key) {
+          void event;
+          handler(key);
+        });
       }
     },
     ipc: {

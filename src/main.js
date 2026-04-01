@@ -7,7 +7,6 @@
 if (require('electron-squirrel-startup')) return;
 const path = require('path');
 const electron = require('electron');
-const remoteMain = require('@electron/remote/main');
 
 var app = electron.app;  // Module to control application life.
 var appPath = app.getAppPath();
@@ -18,18 +17,8 @@ var createSettingsStore = require('./helpers/helper.settings-store');
 // Module to create native browser window.
 var BrowserWindow = electron.BrowserWindow;
 var dialog = electron.dialog;
+var ipcMain = electron.ipcMain;
 var i18n = require('i18next');
-
-remoteMain.initialize();
-
-app.on('web-contents-created', function(contentsEvent, contents) {
-  void contentsEvent;
-  if (contents &&
-      typeof contents.getType === 'function' &&
-      contents.getType() === 'webview') {
-    remoteMain.enable(contents);
-  }
-});
 
 // Report crashes to our server.
 //require('crash-reporter').start();
@@ -47,6 +36,7 @@ function start() {
   }
 
   settingsInit();
+  registerIpcHandlers();
   windowInit();
 }
 
@@ -72,6 +62,65 @@ function settingsInit() {
   });
 
   app.settings.load();
+}
+
+function registerIpcHandlers() {
+  ipcMain.on('app:get-bootstrap', function(event) {
+    event.returnValue = {
+      appPath: app.getAppPath(),
+      constants: app.constants,
+      settings: app.settings.v,
+      version: app.getVersion()
+    };
+  });
+
+  ipcMain.on('app:get-path', function(event, name) {
+    event.returnValue = app.getPath(name);
+  });
+
+  ipcMain.on('settings:save-sync', function(event, settings) {
+    app.settings.v = settings;
+    app.settings.save();
+    event.returnValue = app.settings.v;
+  });
+
+  ipcMain.on('settings:reset-sync', function(event) {
+    app.settings.reset();
+    event.returnValue = app.settings.v;
+  });
+
+  ipcMain.on('dialog:show-sync', function(event, options) {
+    var targetWindow = BrowserWindow.fromWebContents(event.sender) ||
+      mainWindow;
+
+    switch (options.t) {
+      case 'OpenDialog':
+        event.returnValue = dialog.showOpenDialogSync(targetWindow, options);
+        break;
+      case 'SaveDialog':
+        event.returnValue = dialog.showSaveDialogSync(targetWindow, options);
+        break;
+      case 'MessageBox':
+        event.returnValue = dialog.showMessageBoxSync(targetWindow, options);
+        break;
+      default:
+        event.returnValue = null;
+    }
+  });
+}
+
+function initializeApplicationMenu() {
+  require('../menus/menu-init')({
+    app: app,
+    BrowserWindow: BrowserWindow,
+    Menu: electron.Menu,
+    i18n: i18n,
+    onMenuClick: function(key) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('menu:click', key);
+      }
+    }
+  });
 }
 
 
@@ -120,10 +169,10 @@ function windowInit() {
         title: "PancakePainter",
         fullscreenable: false, // Workaround for fullscreen OSX bug :'(
         webPreferences: {
-          // Keep legacy renderer behavior during migration while preload
-          // is introduced.
-          contextIsolation: false,
+          contextIsolation: true,
           nodeIntegration: true,
+          nodeIntegrationInSubFrames: false,
+          sandbox: false,
           // Required in Electron 28+ for embedded webview windows.
           webviewTag: true,
           preload: path.join(__dirname, 'preload', 'main-preload.js')
@@ -140,12 +189,7 @@ function windowInit() {
 
       // Create the main application window.
       mainWindow = new BrowserWindow(windowSettings);
-      remoteMain.enable(mainWindow.webContents);
-
-      // Window wrapper for dialog (can't include module outside of this) :P
-      mainWindow.dialog = function(options, callback) {
-        return dialog['show' + options.t](mainWindow, options, callback);
-      };
+      initializeApplicationMenu();
 
       // and load the index.html of the app.
       mainWindow.loadURL('file://' + __dirname + '/index.html');

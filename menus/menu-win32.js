@@ -2,9 +2,8 @@
  * @file Menu "module", provides menu for Windows/win32 only.
  */
 "use strict";
-module.exports = function applyTemplate() {
-  var remote = require('electron').remote;
-  var BrowserWindow = remote.BrowserWindow;
+module.exports = function applyTemplate(dependencies) {
+  var BrowserWindow = dependencies.BrowserWindow;
 
   var template = [
     {

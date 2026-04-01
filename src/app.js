@@ -17,16 +17,48 @@ window.$ = window.jQuery = require('jquery');
 window.toastr = require('toastr');
 window._ = require('underscore');
 var path = require('path');
+var appBridge = window.appBridge;
 
 // Main Process ===========================================---------------------
 // Include global main process connector objects for the renderer (this window).
-var remote = require('electron').remote;
-var mainWindow = remote.getCurrentWindow();
-var i18n = remote.require('i18next');
-var app = remote.app;
-require('../menus/menu-init')(app); // Initialize the menus
-var fs = remote.require('fs-plus');
+var mainWindow = {
+  dialog: appBridge.window.dialog,
+  focus: appBridge.window.focus
+};
+var i18n = {
+  t: appBridge.i18n.t
+};
+var app = {
+  constants: appBridge.app.constants,
+  currentFile: {},
+  settings: {
+    v: appBridge.app.getSettings(),
+    save: function() {
+      this.v = appBridge.app.saveSettings(this.v);
+      return this.v;
+    },
+    reset: function() {
+      this.v = appBridge.app.resetSettings();
+      return this.v;
+    }
+  },
+  getPath: function(name) {
+    return appBridge.app.getPath(name);
+  },
+  getAppPath: function() {
+    return appBridge.app.getAppPath();
+  },
+  getVersion: function() {
+    return appBridge.app.getVersion();
+  }
+};
+var fs = appBridge.fs;
 var fileIO = require('./helpers/helper.file-io');
+
+window.mainWindow = mainWindow;
+window.i18n = i18n;
+window.app = app;
+window.fs = fs;
 
 // Bot specific configuration & state =====================---------------------
 var scale = {};
@@ -493,6 +525,10 @@ function bindControls() {
         console.log(menu);
     }
   };
+
+  appBridge.menu.onMenuClick(function(menuKey) {
+    app.menuClick(menuKey);
+  });
 
   // Settings form fields management & done/reset
   $(window).keydown(function(e){
