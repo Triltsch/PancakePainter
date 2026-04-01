@@ -130,3 +130,11 @@ Jumping to a supported Electron baseline before removing renderer `remote` calls
 **Context-isolated renderer migration needs bridge-backed state methods, not shared object references**
 Passing mutable main-process objects such as settings stores through preload is unreliable once `contextIsolation` is enabled because the renderer sees a copied/proxied view rather than shared state.
 - Rule: Expose explicit preload methods like `getSettings()`, `saveSettings()`, `resetSettings()`, and menu event subscriptions over IPC instead of mutating main-process objects directly from renderer code.
+
+**Webview preload `require` shims must be explicit allowlists, never pass-through**
+A pass-through shim (`return require(moduleName)`) restores broad Node/Electron access inside webview content and undermines IPC channel allowlists.
+- Rule: In webview preload bridges, allow only known-safe module specifiers actually needed by the webview scripts and reject everything else with a hard error.
+
+**Platform-specific module selection in tests must be deterministic**
+Modules that branch on `process.platform` at require-time can make tests pass on one OS and fail on another.
+- Rule: For Jest tests covering platform-gated modules, set `process.platform` before `require(...)`, restore it in `finally`, and `jest.resetModules()` to avoid cross-test leakage.

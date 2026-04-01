@@ -12,9 +12,30 @@ var bootstrap = ipcRenderer.sendSync('app:get-bootstrap') || {};
 
 var allowedIn = channels.autotrace.IN.concat(channels.export.IN);
 var allowedOut = channels.autotrace.OUT.concat(channels.export.OUT);
+var allowedRequireModules = [
+  'jquery',
+  'underscore',
+  'jimp',
+  'path',
+  '../gcode.js'
+];
+var allowedRequirePattern = /^\.\.\/helpers\/helper\.(utils|autotrace)$/;
 
 function createRequireShim() {
   return function(moduleName) {
+    if (typeof moduleName !== 'string') {
+      throw new Error('Blocked require of invalid module specifier');
+    }
+
+    if (
+      allowedRequireModules.indexOf(moduleName) === -1 &&
+      !allowedRequirePattern.test(moduleName)
+    ) {
+      throw new Error(
+        'Blocked require of non-allowlisted module: ' + moduleName
+      );
+    }
+
     return require(moduleName);
   };
 }

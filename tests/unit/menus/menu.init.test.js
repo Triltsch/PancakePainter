@@ -14,7 +14,6 @@ jest.mock('../../../menus/menu-win32', () => jest.fn(() => ([
     ]
   }
 ])));
-
 jest.mock('../../../menus/menu-darwin', () => jest.fn(() => ([
   {
     key: 'file.title',
@@ -23,42 +22,52 @@ jest.mock('../../../menus/menu-darwin', () => jest.fn(() => ([
     ]
   }
 ])));
-
-const menuInit = require('../../../menus/menu-init');
-
 describe('menu-init', () => {
   /**
    * Verifies labels are translated and unbound menu items dispatch through IPC.
    * Expected: the built menu is installed and generic clicks call onMenuClick.
    */
   test('translates menu labels and forwards click keys', () => {
+    var menuInit;
+    var originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform');
     const setApplicationMenu = jest.fn();
     const buildFromTemplate = jest.fn((template) => template);
     const onMenuClick = jest.fn();
 
-    menuInit({
-      app: {
-        getName: () => 'PancakePainter'
-      },
-      BrowserWindow: {},
-      Menu: {
-        buildFromTemplate: buildFromTemplate,
-        setApplicationMenu: setApplicationMenu
-      },
-      i18n: {
-        t: (key) => 'tr:' + key
-      },
-      onMenuClick: onMenuClick
-    });
+    jest.resetModules();
+    Object.defineProperty(process, 'platform', { value: 'win32' });
 
-    const template = buildFromTemplate.mock.calls[0][0];
+    try {
+      menuInit = require('../../../menus/menu-init');
 
-    expect(template[0].label).toBe('tr:menus:file.title');
-    expect(template[0].submenu[0].label).toBe('tr:menus:file.open');
+      menuInit({
+        app: {
+          getName: () => 'PancakePainter'
+        },
+        BrowserWindow: {},
+        Menu: {
+          buildFromTemplate: buildFromTemplate,
+          setApplicationMenu: setApplicationMenu
+        },
+        i18n: {
+          t: (key) => 'tr:' + key
+        },
+        onMenuClick: onMenuClick
+      });
 
-    template[0].submenu[0].click();
+      const template = buildFromTemplate.mock.calls[0][0];
 
-    expect(onMenuClick).toHaveBeenCalledWith('file.open');
-    expect(setApplicationMenu).toHaveBeenCalledWith(template);
+      expect(template[0].label).toBe('tr:menus:file.title');
+      expect(template[0].submenu[0].label).toBe('tr:menus:file.open');
+
+      template[0].submenu[0].click();
+
+      expect(onMenuClick).toHaveBeenCalledWith('file.open');
+      expect(setApplicationMenu).toHaveBeenCalledWith(template);
+    } finally {
+      if (originalPlatformDescriptor) {
+        Object.defineProperty(process, 'platform', originalPlatformDescriptor);
+      }
+    }
   });
 });
