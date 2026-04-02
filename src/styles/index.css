@@ -6,7 +6,9 @@ span#drawnote {
   position: absolute;
   width: 100%;
   text-align: center;
-  bottom: 10px; }
+  bottom: 10px;
+  color: #222;
+  z-index: 3; }
 
 img {
   -webkit-user-drag: none; }
@@ -244,7 +246,7 @@ canvas#autotrace-preview {
     float: left;
     padding: 0.5em;
     position: relative; }
-    #tools .tool.active div {
+    #tools .tool.active > div {
       background-position-x: 100%; }
   #tools div {
     background-repeat: no-repeat;
@@ -253,11 +255,11 @@ canvas#autotrace-preview {
     width: 64px;
     height: 64px;
     overflow: hidden; }
-  #tools.color-1 .tool.color-change div {
+  #tools.color-1 .tool.color-change > div {
     background-position-y: 33.333%; }
-  #tools.color-2 .tool.color-change div {
+  #tools.color-2 .tool.color-change > div {
     background-position-y: 66.666%; }
-  #tools.color-3 .tool.color-change div {
+  #tools.color-3 .tool.color-change > div {
     background-position-y: 100%; }
   #tools #import {
     overflow: visible;

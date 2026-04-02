@@ -24,11 +24,24 @@ module.exports = function(paper) {
   tool.smallShapeArea = 200; // Minimum size to be considered a "small" shape
   tool.smallShapeSimplify = 0.2; // Amount to simplify "small" fill shapes
   tool.islandThreshold = 10; // Max distance between fill boundary nodes
-  tool.alphaBitmapThreshold = 150; // 0-255, value that's considered visible
+  tool.alphaBitmapThreshold = 10; // 0-255, value that's considered visible
 
   // Tool vars
   var ndarray = require('ndarray');
   var flood = require('n-dimensional-flood-fill');
+  var fillErrorMsg = 'Error creating fill. Check console for details.';
+  var fillNoPathsMsg = 'Cannot flood fill without at least one closed line.';
+  var fillOnPathMsg = 'Cannot flood fill on top of an existing line.';
+  var fillBoundsMsg = 'Flood fill out of bounds.';
+  var fillNotClosedMsg = 'Flood fill area is not closed.';
+
+  function t(key, fallback) {
+    var translated = i18n.t(key);
+    if (!translated || translated === key) {
+      return fallback;
+    }
+    return translated;
+  }
 
   var filling = false;
   tool.onMouseDown = function(event) {
@@ -39,18 +52,23 @@ module.exports = function(paper) {
 
     // Run the fill in a timeout to allow the previous code to run first.
     setTimeout(function() {
-      cleanAllPaths(); // Clean paths of any duplicate points.
-      var fillPath = floodFill(event.point);
+      try {
+        cleanAllPaths(); // Clean paths of any duplicate points.
+        var fillPath = floodFill(event.point);
 
-      if (fillPath !== false) {
-        fillPath.fillColor = paper.pancakeShades[paper.pancakeCurrentShade];
-        fillPath.data.color = paper.pancakeCurrentShade;
-        paper.fileChanged();
+        if (fillPath !== false) {
+          fillPath.fillColor = paper.pancakeShades[paper.pancakeCurrentShade];
+          fillPath.data.color = paper.pancakeCurrentShade;
+          paper.fileChanged();
+        }
+      } catch (error) {
+        console.error('Fill tool exception:', error, error.stack);
+        toastr.error(t('tools.error.fill', fillErrorMsg));
+      } finally {
+        $('#editor').toggleClass('wait', false);
+        view.update(true);
+        filling = false;
       }
-
-      $('#editor').toggleClass('wait', false);
-      view.update(true);
-      filling = false;
     }, 200);
 
   };
@@ -74,8 +92,8 @@ module.exports = function(paper) {
     // Check for Paths
     if (cLayer.children.length === 0) {
       // No paths? Can't do a darn thing.
-      toastr.warning(i18n.t("tools.warnings.fill.nopaths"));
-      return;
+      toastr.warning(t('tools.warnings.fill.nopaths', fillNoPathsMsg));
+      return false;
     }
 
     // Fist check to see if the user clicked ON a stroke or existing fill
@@ -89,7 +107,7 @@ module.exports = function(paper) {
       if (ht.item.data.fill) {
         return ht.item;
       } else {
-        toastr.warning(i18n.t("tools.warnings.fill.path"));
+        toastr.warning(t('tools.warnings.fill.path', fillOnPathMsg));
         return false;
       }
     }
@@ -100,7 +118,7 @@ module.exports = function(paper) {
       rast = cLayer.rasterize(50);
       var w = rast.width; var h = rast.height;
       var pix = rast.getImageData(new Rectangle(0, 0, w, h)).data;
-      var grid = ndarray(new Int8Array(pix.length/4), [w-1, h-1]);
+      var grid = ndarray(new Int8Array(pix.length/4), [w, h]);
 
       // Move through all RGBA pixel data to generate a 1bit map of visible pix.
       for (var p = 0; p < pix.length; p+= 4) {
@@ -116,15 +134,17 @@ module.exports = function(paper) {
       rastPt.y = parseInt(rastPt.y + h/2);
 
       // Outside the bounds of the layer data!
-      if (rastPt.x > w || rastPt.x < 0 || rastPt.y > h || rastPt.y < 0) {
-        toastr.warning(i18n.t("tools.warnings.fill.bounds"));
+      if (rastPt.x >= w || rastPt.x < 0 || rastPt.y >= h || rastPt.y < 0) {
+        toastr.warning(t('tools.warnings.fill.bounds', fillBoundsMsg));
         rast.remove();
         return false;
       }
     } catch(e) {
-      toastr.error(i18n.t("tools.error.fill"));
+      toastr.error(t('tools.error.fill', fillErrorMsg));
       console.error(e);
-      rast.remove();
+      if (rast) {
+        rast.remove();
+      }
       return false;
     }
 
@@ -134,11 +154,13 @@ module.exports = function(paper) {
       seed: [rastPt.x, rastPt.y],
       getter: function(x, y){
         // Apparently ndarray will take insane values and return real values :/
-        if (x < 0  || y < 0 || x > w || y > h || hitLimit) return undefined;
+        if (x < 0  || y < 0 || x >= w || y >= h || hitLimit) {
+          return undefined;
+        }
         return grid.get(x, y);
       },
       onBoundary: function(x, y) {
-        if (x === w || x === 0 || y === h || y === 0) {
+        if (x >= w - 1 || x <= 0 || y >= h - 1 || y <= 0) {
           hitLimit = true;
         }
 
@@ -150,7 +172,7 @@ module.exports = function(paper) {
 
     // If our flood fill touched the edge of the layer, fill wasn't closed.
     if (hitLimit) {
-      toastr.warning(i18n.t("tools.warnings.fill.notclosed"));
+      toastr.warning(t('tools.warnings.fill.notclosed', fillNotClosedMsg));
       rast.remove();
       return false;
     }

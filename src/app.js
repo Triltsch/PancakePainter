@@ -12,53 +12,326 @@
 "function"!=typeof Promise.prototype.done&&(Promise.prototype.done=function(t,n){var o=arguments.length?this.then.apply(this,arguments):this;o.then(null,function(t){setTimeout(function(){throw t},0)})}); /* jshint ignore: line */
 
 // Libraries ==============================================---------------------
-// Must use require syntax for including these libs because of node duality.
-window.$ = window.jQuery = require('jquery');
-window.toastr = require('toastr');
-window._ = require('underscore');
-var path = require('path');
-var appBridge = window.appBridge;
+// Libraries are loaded via script tags in index.html before this file.
+// Globals are now available: $, jQuery, toastr, _
+var bridge = window.appBridge;
+var path = bridge.path;
 
 // Main Process ===========================================---------------------
 // Include global main process connector objects for the renderer (this window).
 var mainWindow = {
-  dialog: appBridge.window.dialog,
-  focus: appBridge.window.focus
+  dialog: bridge.window.dialog,
+  focus: bridge.window.focus
 };
 var i18n = {
-  t: appBridge.i18n.t
+  t: bridge.i18n.t
 };
 var app = {
-  constants: appBridge.app.constants,
+  constants: bridge.app.constants,
   currentFile: {},
   settings: {
-    v: appBridge.app.getSettings(),
+    v: bridge.app.getSettings(),
     save: function() {
-      this.v = appBridge.app.saveSettings(this.v);
+      this.v = bridge.app.saveSettings(this.v);
       return this.v;
     },
     reset: function() {
-      this.v = appBridge.app.resetSettings();
+      this.v = bridge.app.resetSettings();
       return this.v;
     }
   },
   getPath: function(name) {
-    return appBridge.app.getPath(name);
+    return bridge.app.getPath(name);
   },
   getAppPath: function() {
-    return appBridge.app.getAppPath();
+    return bridge.app.getAppPath();
   },
   getVersion: function() {
-    return appBridge.app.getVersion();
+    return bridge.app.getVersion();
   }
 };
-var fs = appBridge.fs;
-var fileIO = require('./helpers/helper.file-io');
+var fs = bridge.fs;
+var rendererModuleCache = {};
+
+function getRendererFs() {
+  return {
+    readFileSync: function(filePath, encoding) {
+      return fs.readFileSync(filePath, encoding);
+    },
+    readFile: function(filePath, callback) {
+      try {
+        callback(null, fs.readFileSync(filePath));
+      } catch (error) {
+        callback(error);
+      }
+    },
+    writeFileSync: function(filePath, data, encoding) {
+      return fs.writeFileSync(filePath, data, encoding);
+    },
+    existsSync: function(filePath) {
+      return fs.existsSync(filePath);
+    },
+    writeFile: function(filePath, data, callback) {
+      try {
+        fs.writeFileSync(filePath, data);
+        if (callback) {
+          callback(null);
+        }
+      } catch (error) {
+        if (callback) {
+          callback(error);
+        }
+      }
+    }
+  };
+}
+
+function getRendererProcess() {
+  return {
+    cwd: function() {
+      return app.getAppPath();
+    },
+    platform: /^[A-Za-z]:\\/.test(app.getAppPath()) ? 'win32' : 'darwin',
+    env: {
+      ENVIRONMENT: 'NODE'
+    },
+    versions: {
+      electron: app.getVersion()
+    },
+    type: 'renderer',
+    stdout: {
+      write: function() {}
+    },
+    on: function() {}
+  };
+}
+
+function resolvePackageEntry(packageRoot, entryPoint) {
+  var candidate = path.join(packageRoot, entryPoint || 'index.js');
+
+  if (fs.existsSync(candidate)) {
+    return candidate;
+  }
+
+  if (!path.extname(candidate) && fs.existsSync(candidate + '.js')) {
+    return candidate + '.js';
+  }
+
+  return path.join(candidate, 'index.js');
+}
+
+function resolveFileCandidate(filePath) {
+  if (fs.existsSync(filePath)) {
+    return filePath;
+  }
+
+  if (fs.existsSync(filePath + '.js')) {
+    return filePath + '.js';
+  }
+
+  if (fs.existsSync(filePath + '.json')) {
+    return filePath + '.json';
+  }
+
+  return filePath;
+}
+
+function resolveRendererModulePath(request, parentFilePath) {
+  var searchPath;
+  var packageRoot;
+  var packageFile;
+  var packageData;
+
+  if (request === 'underscore' || request === 'fs' ||
+      request === 'fs-plus' || request === 'path') {
+    return request;
+  }
+
+  if (/^[A-Za-z]:\\/.test(request)) {
+    return resolveFileCandidate(request);
+  }
+
+  if (request.charAt(0) === '.') {
+    var basePath = parentFilePath ? path.parse(parentFilePath).dir :
+      path.join(app.getAppPath(), 'src');
+    var localPath = path.join(basePath, request);
+    return resolveFileCandidate(localPath);
+  }
+
+  searchPath = parentFilePath ? path.parse(parentFilePath).dir :
+    path.join(app.getAppPath(), 'src');
+
+  while (searchPath && path.parse(searchPath).dir !== searchPath) {
+    packageRoot = path.join(searchPath, 'node_modules', request);
+    packageFile = path.join(packageRoot, 'package.json');
+
+    if (fs.existsSync(packageFile)) {
+      packageData = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
+      return resolvePackageEntry(packageRoot, packageData.main);
+    }
+
+    if (fs.existsSync(packageRoot)) {
+      return resolvePackageEntry(packageRoot);
+    }
+
+    searchPath = path.parse(searchPath).dir;
+  }
+
+  packageRoot = path.join(app.getAppPath(), 'node_modules', request);
+  packageFile = path.join(packageRoot, 'package.json');
+
+  if (fs.existsSync(packageFile)) {
+    packageData = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
+    return resolvePackageEntry(packageRoot, packageData.main);
+  }
+
+  var nodeModulesRoot = path.join(app.getAppPath(), 'node_modules');
+  return resolvePackageEntry(nodeModulesRoot, request);
+}
+
+function loadRendererModule(request, parentFilePath) {
+  var resolvedPath = resolveRendererModulePath(request, parentFilePath);
+  var module = { exports: {} };
+  var moduleSource;
+  var moduleWrapper;
+
+  if (resolvedPath === 'underscore') {
+    return _;
+  }
+
+  if (request === 'iota-array') {
+    return function(count) {
+      var values = [];
+      var index;
+      for (index = 0; index < count; index++) {
+        values.push(index);
+      }
+      return values;
+    };
+  }
+
+  if (request === 'is-buffer') {
+    return function(value) {
+      return value && typeof value === 'object' &&
+        typeof value.copy === 'function' &&
+        typeof value.slice === 'function' &&
+        typeof value.length === 'number';
+    };
+  }
+
+  if (resolvedPath === 'fs' || resolvedPath === 'fs-plus') {
+    return getRendererFs();
+  }
+
+  if (resolvedPath === 'path') {
+    return path;
+  }
+
+  if (rendererModuleCache[resolvedPath]) {
+    return rendererModuleCache[resolvedPath].exports;
+  }
+
+  rendererModuleCache[resolvedPath] = module;
+  moduleSource = fs.readFileSync(resolvedPath, 'utf8');
+  /* jshint ignore:start */
+  moduleWrapper = new Function(
+    'module',
+    'exports',
+    'require',
+    '__filename',
+    '__dirname',
+    'process',
+    moduleSource
+  );
+  /* jshint ignore:end */
+
+  moduleWrapper(
+    module,
+    module.exports,
+    function(dependency) {
+      return loadRendererModule(dependency, resolvedPath);
+    },
+    resolvedPath,
+    path.parse(resolvedPath).dir,
+    getRendererProcess()
+  );
+
+  return module.exports;
+}
+
+// Helper for file I/O operations (inline since renderer cannot use require)
+var fileIO = (function() {
+  function normalizeProjectPath(filePath) {
+    if (!filePath) return '';
+    if (bridge.path.extname(filePath).toLowerCase() !== '.pbp') {
+      return filePath + '.pbp';
+    }
+    return filePath;
+  }
+
+  function saveProjectFile(options) {
+    var fs = options.fs;
+    var paper = options.paper;
+    var toastr = options.toastr;
+    var i18n = options.i18n;
+    var currentFile = options.currentFile;
+    var targetPath = normalizeProjectPath(options.filePath || currentFile.path);
+
+    if (!targetPath) return false;
+
+    currentFile.path = targetPath;
+  currentFile.name = bridge.path.basename(targetPath);
+
+    try {
+      fs.writeFileSync(currentFile.path, paper.getPBP());
+      toastr.success(i18n.t('file.note', { file: currentFile.name }));
+      currentFile.changed = false;
+      return true;
+    } catch (e) {
+      toastr.error(i18n.t('file.error', { file: currentFile.name }));
+      return false;
+    }
+  }
+
+  function openProjectFile(options) {
+    var fs = options.fs;
+    var paper = options.paper;
+    var toastr = options.toastr;
+    var i18n = options.i18n;
+    var currentFile = options.currentFile;
+    var filePath = options.filePath;
+    var parsedName = bridge.path.basename(filePath || '');
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      toastr.error(i18n.t('file.error', { file: parsedName }));
+      return false;
+    }
+
+    try {
+      paper.loadPBP(filePath);
+      currentFile.path = filePath;
+      currentFile.name = bridge.path.basename(filePath);
+      currentFile.changed = false;
+      return true;
+    } catch (e) {
+      var fileName = bridge.path.basename(filePath);
+      toastr.error(i18n.t('file.error', { file: fileName }));
+      return false;
+    }
+  }
+
+  return {
+    normalizeProjectPath: normalizeProjectPath,
+    saveProjectFile: saveProjectFile,
+    openProjectFile: openProjectFile
+  };
+})();
 
 window.mainWindow = mainWindow;
 window.i18n = i18n;
 window.app = app;
 window.fs = fs;
+window.path = path;
 
 // Bot specific configuration & state =====================---------------------
 var scale = {};
@@ -77,14 +350,28 @@ toastr.options.newestOnTop = true;
 
 // Page loaded
 $(function(){
+  var griddleImage = $('#griddle')[0];
+
   // Set app version text
   $('#toolback .ver').text('v' + app.getVersion());
 
-   // After page load, wait for the griddle image to finish before initializing.
-  $('#griddle').load(initEditor);
+  // Wait for the griddle image dimensions, but handle the cached-image case.
+  if (griddleImage && griddleImage.complete && griddleImage.naturalWidth) {
+    initEditor();
+  } else {
+    $('#griddle').one('load', initEditor);
+  }
 
   // Apply element translation
   i18n.translateElementsIn('body');
+
+  // Drawnote fallback: ensure translated text is visible even if data-i18n
+  // processing order changes.
+  var drawnoteKey = 'common.drawnote';
+  var drawnoteText = i18n.t(drawnoteKey);
+  if (drawnoteText && drawnoteText !== drawnoteKey) {
+    $('#drawnote').text(drawnoteText);
+  }
 });
 
 // Add translation element helper.
@@ -109,6 +396,9 @@ i18n.translateElementsIn = function(context) {
     }
   });
 };
+
+// Load the actual editor PaperScript only when the canvas is ready.
+var editorLoaded = false;
 
 function initEditor() {
   var $griddle = $('#editor-wrapper img');
@@ -167,27 +457,32 @@ function initEditor() {
     }
 
     editorLoad(); // Load the editor (if it hasn't already been loaded)
+
+    if (editorLoaded && mainWindow.editorPaperScope.syncViewToScale) {
+      mainWindow.editorPaperScope.syncViewToScale(scale);
+    }
+
     // This must happen after the very first resize, otherwise the canvas
     // doesn't have the correct dimensions for Paper to size to.
     $(mainWindow).trigger('move');
   }).resize();
 }
 
-// Load the actual editor PaperScript (only when the canvas is ready).
-var editorLoaded = false;
 function editorLoad() {
   if (!editorLoaded) {
+    var nativeWindowEvent = window.Event;
     editorLoaded = true;
-    mainWindow.editorPaperScope = paper.PaperScript.load($('<script>').attr({
-      type:"text/paperscript",
-      src: "editor.ps.js",
-      canvas: "editor"
-    })[0]);
+    paper.install(window);
+    window.Event = nativeWindowEvent;
+    paper.setup(document.getElementById('editor'));
+    mainWindow.editorPaperScope = paper;
+    loadRendererModule('./editor.ps.js');
   }
 }
 
 // Trigger load init resize only after editor has called this function.
 function editorLoadedInit() { /* jshint ignore:line */
+  console.log('[Editor] editorLoadedInit fired');
   $(window).resize();
   buildToolbar();
   buildImageImporter();
@@ -203,6 +498,11 @@ function editorLoadedInit() { /* jshint ignore:line */
 // Build the toolbar DOM dynamically.
 function buildToolbar() {
   var $t = $('<ul>').appendTo('#tools');
+  console.log(
+    '[Toolbar] build start toolCount=' +
+    (paper.tools ? paper.tools.length : 0) +
+    ' hasActiveTool=' + (!!paper.tool)
+  );
 
   _.each(paper.tools, function(tool){
     var colorID = '';
@@ -234,6 +534,22 @@ function buildToolbar() {
       }));
     }
   });
+
+  console.log(
+    '[Toolbar] build complete domItems=' + $t.find('li').length +
+    ' toolKeys=' + _.map(paper.tools, function(tool) {
+      return tool.key;
+    }).join(',')
+  );
+  console.log('[Toolbar] html=' + $('#tools').html());
+  console.log(
+    '[Toolbar] rect=' + JSON.stringify(
+      document.getElementById('tools').getBoundingClientRect()
+    )
+  );
+
+  // Set initial color class on tools container
+  $('#tools').attr('class', 'color-' + paper.pancakeCurrentShade);
 
   // Activate the first (default) tool.
   $t.find('li:first').click();
@@ -526,7 +842,7 @@ function bindControls() {
     }
   };
 
-  appBridge.menu.onMenuClick(function(menuKey) {
+  bridge.menu.onMenuClick(function(menuKey) {
     app.menuClick(menuKey);
   });
 
@@ -632,14 +948,48 @@ function bindControls() {
   };
 }
 
+// Handle unsaved file changes before window close
 window.onbeforeunload = function() {
-  return checkFileStatus();
+  // Only prevent close if changes AND dialog not processed
+  if (app.currentFile.changed) {
+    // checkFileStatus handles dialog, returns false if async save started
+    checkFileStatus();
+    // Don't return - let Electron handle close
+    // If unsaved changes, checkFileStatus already showed dialog
+  }
+  // Always allow close (return undefined)
+  return;
 };
 
 // Overlay modal internal "window" management API ==============================
 mainWindow.overlay = {
   windowNames: ['export', 'autotrace', 'settings'], // TODO: load automatically.
   windows: {}, // Placeholder for window module code.
+  contexts: {},
+  ensureWindowLoaded: function(name) {
+    var jsFile;
+
+    if (this.windows[name] && this.windows[name].__loaded) {
+      return this.windows[name];
+    }
+
+    jsFile = bridge.path.join(
+      app.getAppPath(), 'src', 'windows', 'window.' + name + '.js'
+    );
+
+    if (fs.existsSync(jsFile)) {
+      this.windows[name] = loadRendererModule(jsFile)(this.contexts[name]);
+      this.windows[name].__loaded = true;
+
+      if (this.windows[name].init) {
+        this.windows[name].init();
+      }
+    } else {
+      this.windows[name] = {__loaded: true};
+    }
+
+    return this.windows[name];
+  },
   toggleWindow: function(name, toggle) {
     if (this.windowNames.indexOf(name) !== -1) {
       var $elem = $('#overlay #' + name);
@@ -649,6 +999,7 @@ mainWindow.overlay = {
 
       // Show or hide?
       if (toggle) {
+        this.ensureWindowLoaded(name);
         mainWindow.overlay.currentWindow = mainWindow.overlay.windows[name];
         this.toggleFrostedOverlay(true, function(){
           $elem.fadeIn('slow');
@@ -680,7 +1031,7 @@ mainWindow.overlay = {
   initWindows: function() {
     _.each(mainWindow.overlay.windowNames, function(name) {
       // Append the actual HTML include into the DOM.
-      var htmlFile = path.join(
+      var htmlFile = bridge.path.join(
         app.getAppPath(), 'src', 'windows', 'window.' + name + '.html'
       );
       var context; // Placeholder for context of newly added element.
@@ -696,21 +1047,8 @@ mainWindow.overlay = {
         i18n.translateElementsIn(context);
       }
 
-      // Load the window specific code into the overlay.windows object.
-      var jsFile = path.join(
-        app.getAppPath(), 'src', 'windows', 'window.' + name + '.js'
-      );
-      if (fs.existsSync(jsFile)) {
-        jsFile = path.join(__dirname, 'windows', 'window.' + name);
-        mainWindow.overlay.windows[name] = require(jsFile)(context);
-
-        // Initialize code trigger for window.
-        if (mainWindow.overlay.windows[name].init) {
-          mainWindow.overlay.windows[name].init();
-        }
-      } else {
-        mainWindow.overlay.windows[name] = {}; // Empty object if not provided.
-      }
+      mainWindow.overlay.contexts[name] = context;
+      mainWindow.overlay.windows[name] = {}; // Loaded on first open.
     });
   },
 
@@ -791,7 +1129,8 @@ function checkFileStatus(callback) {
   }
 
   if (callback) callback();
-  return true;
+  // Don't return true - allow close to proceed
+  return;
 }
 
 
