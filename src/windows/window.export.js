@@ -25,6 +25,7 @@ module.exports = function(context) {
    */
   function initRenderConfig() {
     var ac = app.constants;
+    var viewBounds = paper.view && paper.view.bounds ? paper.view.bounds : null;
     exportData.renderConfig = {
       printArea: { // Print area limitations (in 1 MM increments)
         x: ac.printableArea.offset.right,
@@ -32,7 +33,13 @@ module.exports = function(context) {
         l: ac.printableArea.width + ac.printableArea.offset.right,
         y: ac.printableArea.height
       },
-      version: app.getVersion() // Application version written to GCODE header
+      version: app.getVersion(), // Application version written to GCODE header
+      sourceBounds: viewBounds ? {
+        x: viewBounds.x,
+        y: viewBounds.y,
+        width: viewBounds.width,
+        height: viewBounds.height
+      } : {x: 0, y: 0, width: 1, height: 1}
     };
   }
 
@@ -89,6 +96,7 @@ module.exports = function(context) {
   function setupWebview() {
     exportData.$webview = $('#simulator-webview');
     var wv = exportData.$webview[0];
+    var webviewSrc = wv.getAttribute('data-src');
 
     // FWD console messages & errors.
     wv.addEventListener('console-message', function(event) {
@@ -133,12 +141,20 @@ module.exports = function(context) {
     wv.addEventListener('dom-ready', function(){
       //wv.openDevTools(); // DEBUG
     });
+
+    // Important: attach listeners before starting webview load so we don't
+    // miss initial IPC handshake events like "paperReady".
+    if (webviewSrc && !wv.getAttribute('src')) {
+      wv.setAttribute('src', webviewSrc);
+    }
   }
 
   // Map the settings to the renderConfig object.
   // @see: main.js settings init default for explanations and default values.
   exportData.setRenderSettings = function() {
     var rc = exportData.renderConfig;
+    var sourceBounds =
+      paper.view && paper.view.bounds ? paper.view.bounds : null;
     rc.flattenResolution = app.settings.v.flatten;
     rc.lineEndPreShutoff = app.settings.v.shutoff;
     rc.startWait = app.settings.v.startwait;
@@ -155,8 +171,14 @@ module.exports = function(context) {
       10
     );
 
-    // Capture editor view bounds and pass along for conversion as source.
-    rc.sourceBounds = paper.view.bounds;
+    // Capture editor view bounds as a plain object for IPC serialization.
+    // Paper.js Rectangle getters can be lost across process boundaries.
+    rc.sourceBounds = sourceBounds ? {
+      x: sourceBounds.x,
+      y: sourceBounds.y,
+      width: sourceBounds.width,
+      height: sourceBounds.height
+    } : {x: 0, y: 0, width: 1, height: 1};
 
     // Mirroring swap.
     rc.noMirror = !$('#mirrorexport', context).prop('checked');
@@ -263,10 +285,18 @@ module.exports = function(context) {
    * Window show event callback, triggered on window show.
    */
   exportData.show = function() {
+    i18n.translateElementsIn(context);
+
     if (exportData.simulatorLoaded) {
       exportData.$webview.send.loadInit();
     }
     exportData.setRenderSettings();
+
+    // Let fade-in/layout settle before applying size-dependent export layout.
+    setTimeout(function() {
+      exportData.resize();
+      exportData.setRenderSettings();
+    }, 250);
   };
 
   /**

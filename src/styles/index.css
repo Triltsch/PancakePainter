@@ -588,9 +588,11 @@ div#simulator-wrapper {
   #export .overlay-title {
     background: linear-gradient(to bottom, #eeeeee 0%, #eeeeee 41%, rgba(238, 238, 238, 0) 100%); }
   #export .overlay-content {
+    position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    width: 100%;
     padding-right: 1.5em;
     padding-top: 0;
     height: 100%;

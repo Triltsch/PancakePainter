@@ -333,6 +333,42 @@ window.app = app;
 window.fs = fs;
 window.path = path;
 
+var rendererLocaleCache = null;
+
+function getLocaleValueByKey(source, keyPath) {
+  var keys = keyPath.split('.');
+  var value = source;
+
+  for (var i = 0; i < keys.length; i++) {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    value = value[keys[i]];
+  }
+
+  return typeof value === 'string' ? value : null;
+}
+
+function getRendererLocaleCache() {
+  if (rendererLocaleCache) {
+    return rendererLocaleCache;
+  }
+
+  try {
+    var localePath = path.join(
+      app.getAppPath(),
+      'locales',
+      'en-US',
+      'app-en-US.json'
+    );
+    rendererLocaleCache = JSON.parse(fs.readFileSync(localePath, 'utf8'));
+  } catch (e) {
+    rendererLocaleCache = {};
+  }
+
+  return rendererLocaleCache;
+}
+
 // Bot specific configuration & state =====================---------------------
 var scale = {};
 
@@ -376,23 +412,41 @@ $(function(){
 
 // Add translation element helper.
 i18n.translateElementsIn = function(context) {
+  function safeTranslate(key, fallback) {
+    var translated = i18n.t(key);
+    if (!translated || translated === key) {
+      var localeFallback = getLocaleValueByKey(getRendererLocaleCache(), key);
+      if (localeFallback) {
+        return localeFallback;
+      }
+
+      return fallback || key;
+    }
+    return translated;
+  }
+
   // For data-i18n tagged elements with value set
   $('[data-i18n][data-i18n!=""]', context).each(function() {
     var $node = $(this);
-    var data = $node.attr('data-i18n').replace('[title]', '');
+    var raw = $node.attr('data-i18n');
+    var data = raw.replace('[title]', '');
 
     // TODO: This is a hack and should use native i18n translation utils :/
-    $node.attr('title', i18n.t(data));
+    if (raw.indexOf('[title]') === 0) {
+      $node.attr('title', safeTranslate(data, $node.attr('title')));
+    } else {
+      $node.text(safeTranslate(data, $node.text()));
+    }
   });
 
   // For data-i18n tagged items without value set...
   $('[data-i18n=""]', context).each(function() {
     var $node = $(this);
 
-    if ($node.text().indexOf('.') > -1 && $node.attr('data-i18n') === "") {
-      var key = $node.text();
+    if ($node.text().indexOf('.') > -1 && $node.attr('data-i18n') === '') {
+      var key = $node.text().trim();
       $node.attr('data-i18n', key);
-      $node.text(i18n.t(key));
+      $node.text(safeTranslate(key, key));
     }
   });
 };
@@ -751,8 +805,8 @@ function bindControls() {
         mainWindow.overlay.windows.export.pickFile(function(filePath) {
           if (!filePath) return; // Cancelled
 
-          mainWindow.overlay.windows.export.filePath = filePath;
           mainWindow.overlay.toggleWindow('export', true);
+          mainWindow.overlay.windows.export.filePath = filePath;
         });
         break;
 
@@ -1002,14 +1056,15 @@ mainWindow.overlay = {
         this.ensureWindowLoaded(name);
         mainWindow.overlay.currentWindow = mainWindow.overlay.windows[name];
         this.toggleFrostedOverlay(true, function(){
-          $elem.fadeIn('slow');
-          $(window).resize();
-          mainWindow.overlay.windows[name].isOpen = true;
+          $elem.fadeIn('slow', function() {
+            $(window).resize();
+            mainWindow.overlay.windows[name].isOpen = true;
 
-          // Show window code trigger.
-          if (mainWindow.overlay.windows[name].show) {
-            mainWindow.overlay.windows[name].show();
-          }
+            // Show window code trigger.
+            if (mainWindow.overlay.windows[name].show) {
+              mainWindow.overlay.windows[name].show();
+            }
+          });
         });
       } else {
         $elem.fadeOut('slow', function() {
@@ -1049,6 +1104,32 @@ mainWindow.overlay = {
 
       mainWindow.overlay.contexts[name] = context;
       mainWindow.overlay.windows[name] = {}; // Loaded on first open.
+
+      if (name === 'export') {
+        // Keep export file dialog available before lazy module load.
+        mainWindow.overlay.windows[name].pickFile = function(callback) {
+          mainWindow.dialog({
+            t: 'SaveDialog',
+            title: i18n.t('export.title'),
+            defaultPath: path.join(
+              app.getPath('userDesktop'),
+              app.currentFile.name.split('.')[0]
+            ),
+            filters: [
+              { name: 'PancakeBot GCODE', extensions: ['gcode'] }
+            ]
+          }, function(filePath) {
+            if (
+              filePath &&
+              filePath.split('.').pop().toLowerCase() !== 'gcode'
+            ) {
+              filePath += '.gcode';
+            }
+
+            callback(filePath);
+          });
+        };
+      }
     });
   },
 
