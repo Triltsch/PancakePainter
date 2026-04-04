@@ -33,9 +33,6 @@ paper.pancakeCurrentShade = 0;
 var toolPen = require('./tools/tool.pen')(paper);
 var toolFill = require('./tools/tool.fill')(paper); /* jshint ignore:line */
 var toolSelect = require('./tools/tool.select')(paper);
-console.log('[Editor] tools registered', _.map(paper.tools, function(tool) {
-  return tool.key;
-}));
 
 // Load Helpers
 // TODO: Load via files in dir, API style.
@@ -369,5 +366,4 @@ paper.loadPBP = function(filePath){
 
 
 // Editor should be done loading, trigger loadInit
-console.log('[Editor] load complete, invoking editorLoadedInit');
 editorLoadedInit();

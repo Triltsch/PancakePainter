@@ -16,14 +16,14 @@ function getAppConstants() {
       width: 507.5,
       height: 267.7
     },
-      // Intrinsic dimensions from the griddle SVG viewBox.
-      // Using fixed constants avoids the Chromium-version-dependent
-      // naturalWidth value for SVGs without explicit size attributes.
-      griddleSvgNaturalSize: {
-        width: 1437.2,
-        height: 758.8
-      },
-      printableArea: {
+    // Intrinsic dimensions from the griddle SVG viewBox.
+    // Using fixed constants avoids the Chromium-version-dependent
+    // naturalWidth value for SVGs without explicit size attributes.
+    griddleSvgNaturalSize: {
+      width: 1437.2,
+      height: 758.8
+    },
+    printableArea: {
       offset: {
         left: 36.22,
         top: 34.77,
