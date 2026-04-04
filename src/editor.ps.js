@@ -9,10 +9,6 @@
 
 paper.strokeWidth = 1; // Match original visual line thickness
 paper.settings.handleSize = 10;
-// Prevent stroke widths from visually scaling with the view zoom level.
-// Without this flag, strokes appear thinner when zoomed in (and thicker
-// when zoomed out), which is the opposite of the expected behaviour.
-view.strokeScaling = false;
 
 // Layer Management (custom vars)
 paper.imageLayer = project.getActiveLayer(); // Behind the active layer

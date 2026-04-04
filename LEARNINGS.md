@@ -58,7 +58,6 @@ By default, Paper.js scales all stroke widths when the view zooms. For drawing a
 - Implementation: Added in [src/editor.ps.js](src/editor.ps.js#L13-L14) after `paper.settings` initialization.
 - Test: Draw a line, zoom view fully in/out - stroke width should remain visually consistent.
 
-**Electron beforeunload for unsaved changes**
 **SVG naturalWidth is unstable across Chromium versions — use viewBox constants**
 `$img[0].naturalWidth` for an SVG `<img>` without explicit `width`/`height` attributes returns
 `300` (CSS default) in Chrome ≤ 66 and the SVG viewBox width in Chrome 84+.
@@ -189,13 +188,13 @@ Modules that branch on `process.platform` at require-time can make tests pass on
 ## Toolbar & CSS Sprites
 
 **CSS sprite positioning requires CSS-driven background-position, not inline style assignments**
-The original toolbar used ackground-position-x and ackground-position-y via CSS rules indexed by active tool and color state. When refactoring replaced this with inline ackground-size: 100% 400% and ackground-position: center top, the entire sprite (all 4 color variants stacked) displayed in each toolbar cell.
+The original toolbar used background-position-x and background-position-y via CSS rules indexed by active tool and color state. When refactoring replaced this with inline background-size: 100% 400% and background-position: center top, the entire sprite (all 4 color variants stacked) displayed in each toolbar cell.
 - Root cause: Inline styles override CSS specificity; removing the CSS class-based selector left only the envelope size.
-- Rule: For color-change tools, use pure ackground-image in DOM and let CSS drivers handle background-position-x (active state) and background-position-y (color variant selection via parent class).
+- Rule: For color-change tools, use pure background-image in DOM and let CSS drivers handle background-position-x (active state) and background-position-y (color variant selection via parent class).
 
 **i18n text lookups must include fallback strings when locales are incomplete**
 The fill tool warning/error toasts displayed empty orange boxes when i18n returned the key itself or an empty string.
-- Rule: Create a helper 	(key, fallback) that checks truthy return and defaults to fallback English text.
+- Rule: Create a helper (key, fallback) that checks truthy return and defaults to fallback English text.
 - Fallbacks: "Error creating fill.", "Cannot flood fill without at least one closed line.", "Cannot flood fill on top of an existing line.", "Flood fill out of bounds.", "Flood fill area is not closed."
 
 **Flood-fill alpha threshold must be low for anti-aliased strokes**
