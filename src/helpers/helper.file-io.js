@@ -5,6 +5,27 @@
 
 var path = require('path');
 
+function renderToastMessage(i18n, key, fileName, fallbackTemplate) {
+  var vars = { file: fileName };
+  var translated = i18n.t(key, vars);
+
+  if (translated && translated !== key) {
+    return translated;
+  }
+
+  var fallback = fallbackTemplate.replace('{{file}}', fileName || '');
+  translated = i18n.t(key, {
+    file: fileName,
+    defaultValue: fallback
+  });
+
+  if (translated && translated !== key) {
+    return translated;
+  }
+
+  return fallback;
+}
+
 function normalizeProjectPath(filePath) {
   if (!filePath) return '';
   if (path.extname(filePath).toLowerCase() !== '.pbp') {
@@ -28,11 +49,21 @@ function saveProjectFile(options) {
 
   try {
     fs.writeFileSync(currentFile.path, paper.getPBP());
-    toastr.success(i18n.t('file.note', { file: currentFile.name }));
+    toastr.success(renderToastMessage(
+      i18n,
+      'file.note',
+      currentFile.name,
+      'Saved {{file}}.'
+    ));
     currentFile.changed = false;
     return true;
   } catch (e) {
-    toastr.error(i18n.t('file.error', { file: currentFile.name }));
+    toastr.error(renderToastMessage(
+      i18n,
+      'file.error',
+      currentFile.name,
+      'Could not save {{file}}.'
+    ));
     return false;
   }
 }
@@ -47,7 +78,12 @@ function openProjectFile(options) {
   var parsedName = path.parse(filePath || '').base;
 
   if (!filePath || !fs.existsSync(filePath)) {
-    toastr.error(i18n.t('file.error', { file: parsedName }));
+    toastr.error(renderToastMessage(
+      i18n,
+      'file.error',
+      parsedName,
+      'Could not open {{file}}.'
+    ));
     return false;
   }
 
@@ -58,7 +94,12 @@ function openProjectFile(options) {
     currentFile.changed = false;
     return true;
   } catch (e) {
-    toastr.error(i18n.t('file.error', { file: path.parse(filePath).base }));
+    toastr.error(renderToastMessage(
+      i18n,
+      'file.error',
+      path.parse(filePath).base,
+      'Could not open {{file}}.'
+    ));
     return false;
   }
 }

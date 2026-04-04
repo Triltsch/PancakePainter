@@ -261,6 +261,27 @@ function loadRendererModule(request, parentFilePath) {
 
 // Helper for file I/O operations (inline since renderer cannot use require)
 var fileIO = (function() {
+  function renderToastMessage(i18n, key, fileName, fallbackTemplate) {
+    var vars = { file: fileName };
+    var translated = i18n.t(key, vars);
+
+    if (translated && translated !== key) {
+      return translated;
+    }
+
+    var fallback = fallbackTemplate.replace('{{file}}', fileName || '');
+    translated = i18n.t(key, {
+      file: fileName,
+      defaultValue: fallback
+    });
+
+    if (translated && translated !== key) {
+      return translated;
+    }
+
+    return fallback;
+  }
+
   function normalizeProjectPath(filePath) {
     if (!filePath) return '';
     if (bridge.path.extname(filePath).toLowerCase() !== '.pbp') {
@@ -280,15 +301,25 @@ var fileIO = (function() {
     if (!targetPath) return false;
 
     currentFile.path = targetPath;
-  currentFile.name = bridge.path.basename(targetPath);
+    currentFile.name = bridge.path.basename(targetPath);
 
     try {
       fs.writeFileSync(currentFile.path, paper.getPBP());
-      toastr.success(i18n.t('file.note', { file: currentFile.name }));
+      toastr.success(renderToastMessage(
+        i18n,
+        'file.note',
+        currentFile.name,
+        'Saved {{file}}.'
+      ));
       currentFile.changed = false;
       return true;
     } catch (e) {
-      toastr.error(i18n.t('file.error', { file: currentFile.name }));
+      toastr.error(renderToastMessage(
+        i18n,
+        'file.error',
+        currentFile.name,
+        'Could not save {{file}}.'
+      ));
       return false;
     }
   }
@@ -303,7 +334,12 @@ var fileIO = (function() {
     var parsedName = bridge.path.basename(filePath || '');
 
     if (!filePath || !fs.existsSync(filePath)) {
-      toastr.error(i18n.t('file.error', { file: parsedName }));
+      toastr.error(renderToastMessage(
+        i18n,
+        'file.error',
+        parsedName,
+        'Could not open {{file}}.'
+      ));
       return false;
     }
 
@@ -315,7 +351,12 @@ var fileIO = (function() {
       return true;
     } catch (e) {
       var fileName = bridge.path.basename(filePath);
-      toastr.error(i18n.t('file.error', { file: fileName }));
+      toastr.error(renderToastMessage(
+        i18n,
+        'file.error',
+        fileName,
+        'Could not open {{file}}.'
+      ));
       return false;
     }
   }
@@ -490,8 +531,13 @@ function initEditor() {
     }
 
     scale = {};
-    scale.x = ($griddle.width()) / $griddle[0].naturalWidth;
-    scale.y = ($griddle.height()) / $griddle[0].naturalHeight;
+    // Use fixed SVG viewBox dimensions instead of DOM naturalWidth, which
+    // is unstable across Chromium versions (300 in Chrome ≤ 66, viewBox
+    // value in Chrome 84+), causing a ~4.8× coordinate-space mismatch.
+    scale.x = ($griddle.width()) /
+      ac.griddleSvgNaturalSize.width;
+    scale.y = ($griddle.height()) /
+      ac.griddleSvgNaturalSize.height;
 
     scale = (scale.x < scale.y ? scale.x : scale.y);
 
