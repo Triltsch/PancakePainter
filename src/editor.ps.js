@@ -7,9 +7,7 @@
    Raster, Group, Point, Layer, path, fs, editorLoadedInit
  */
 
-var dataURI = require('datauri');
-
-paper.strokeWidth = 5; // Custom
+paper.strokeWidth = 1; // Match original visual line thickness
 paper.settings.handleSize = 10;
 
 // Layer Management (custom vars)
@@ -34,14 +32,36 @@ var toolSelect = require('./tools/tool.select')(paper);
 
 // Load Helpers
 // TODO: Load via files in dir, API style.
-_.each(['undo', 'clipboard', 'utils', 'autotrace'], function(helperName) {
-  if (helperName === 'autotrace') {
-    paper[helperName] = require('./helpers/helper.' + helperName)(paper, {
+_.each(['undo', 'clipboard'], function(helperName) {
+  paper[helperName] = require('./helpers/helper.' + helperName)(paper);
+});
+
+Object.defineProperty(paper, 'utils', {
+  configurable: true,
+  get: function() {
+    var utils = require('./helpers/helper.utils')(paper);
+    Object.defineProperty(paper, 'utils', {
+      configurable: true,
+      value: utils,
+      writable: true
+    });
+    return utils;
+  }
+});
+
+Object.defineProperty(paper, 'autotrace', {
+  configurable: true,
+  get: function() {
+    var autotrace = require('./helpers/helper.autotrace')(paper, {
       appPath: app.getAppPath(),
       tempPath: app.getPath('temp')
     });
-  } else {
-    paper[helperName] = require('./helpers/helper.' + helperName)(paper);
+    Object.defineProperty(paper, 'autotrace', {
+      configurable: true,
+      value: autotrace,
+      writable: true
+    });
+    return autotrace;
   }
 });
 
@@ -50,12 +70,24 @@ paper.setCursor = function(type) {
   if (!type) type = 'default';
 };
 
+paper.syncViewToScale = function(nextScale) {
+  if (!nextScale) {
+    return;
+  }
+
+  view.zoom = nextScale;
+
+  // Keep the project origin pinned to the top-left of the printable area.
+  var corner = view.viewToProject(new Point(0, 0));
+  view.scrollBy(new Point(0, 0).subtract(corner));
+  view.update();
+};
+
 function onResize(event) { /* jshint ignore:line */
-  // Ensure paper project view retains correct scaling and position.
-  view.zoom = scale;
-  var corner = view.viewToProject(new Point(0,0));
-  view.scrollBy(new Point(0,0).subtract(corner));
+  paper.syncViewToScale(scale);
 }
+
+view.onResize = onResize;
 
 // Initialize (or edit) an image import for tracing on top of
 paper.initImageImport = function() {
@@ -77,7 +109,7 @@ paper.initImageImport = function() {
 
       paper.imageLayer.activate(); // Draw the raster to the image layer
         var img = new Raster({
-          source: dataURI(filePath[0]),
+          source: encodeURI('file:///' + filePath[0].replace(/\\/g, '/')),
           position: view.center
         });
         // The raster MUST be in a group to alleviate coord & scaling issues.
@@ -236,6 +268,13 @@ paper.handleClipboard = function(op) {
 // Render the text/SVG for the pancakebot project files
 paper.getPBP = function(){
   paper.deselect(); // Don't export with something selected!
+  // Embed the coordinate-space denominator so future loaders can detect and
+  // migrate files from a different Electron/Chromium version.
+  if (!project.data) {
+    project.data = {};
+  }
+  project.data.ppScaleDenominator =
+    app.constants.griddleSvgNaturalSize.width;
   return project.exportJSON();
 };
 
@@ -271,6 +310,42 @@ paper.loadPBP = function(filePath){
 
   paper.imageLayer = project.layers[0];
   paper.mainLayer = project.layers[1];
+
+  // Migrate coordinate space for files saved with a different scale
+  // denominator.  Legacy builds (Electron ≤ 3, Chromium ≤ 66) used
+  // naturalWidth = 300, giving a ~4.8× mismatch versus the current
+  // build which anchors on the SVG viewBox width (1437.2).
+  var currentDenominator =
+    app.constants.griddleSvgNaturalSize.width;
+  var savedDenominator =
+    project.data && project.data.ppScaleDenominator;
+
+  if (!savedDenominator) {
+    // No metadata: attempt heuristic detection.
+    // Legacy space ≈ 262 units wide; current ≈ 1255.
+    // Threshold of 350 separates them without false positives.
+    var LEGACY_SCALE_DENOMINATOR = 300;
+    var LEGACY_COORD_THRESHOLD = 350;
+    var bounds = paper.mainLayer.bounds;
+    if (bounds && bounds.width > 0 &&
+        bounds.width < LEGACY_COORD_THRESHOLD) {
+      savedDenominator = LEGACY_SCALE_DENOMINATOR;
+    }
+  }
+
+  if (savedDenominator &&
+      Math.abs(savedDenominator - currentDenominator) > 0.5) {
+    // Scale layers from the saved space into the current one.
+    var migrationFactor = currentDenominator / savedDenominator;
+    var origin = new Point(0, 0);
+    paper.mainLayer.scale(migrationFactor, origin);
+    paper.imageLayer.scale(migrationFactor, origin);
+    console.log(
+      '[Editor] PBP migration: ' +
+      savedDenominator + ' -> ' + currentDenominator +
+      ' (x' + migrationFactor.toFixed(4) + ')'
+    );
+  }
 
   paper.mainLayer.activate();
 

@@ -23,6 +23,23 @@ Refactoring surrounding code while fixing lint violations risks introducing new 
 Skipping `npm install` causes false-positive test passes on a stale dependency tree.
 - Rule: Always run `npm install` → `npm test` (lint + jest). Run `npm run smoke` only for startup-affecting changes; document the decision in the stage checkpoint.
 
+**Validation docs should not hardcode passing test counts**
+Test suite totals change as coverage grows, and stale counts make validation instructions look broken even when the suite is green.
+- Rule: In docs and prompts, say the full suite must pass instead of pinning an exact `N/N` unless the count is part of the thing being tested.
+
+---
+
+## Electron Context Isolation (Sprint 5 Migration)
+
+**contextIsolation and nodeIntegration conflict**
+Setting both `contextIsolation: true` and `nodeIntegration: true` in webPreferences causes "cannot assign to read-only property" errors when preload tries to attach bridges to the window object.
+- Rule: In webPreferences, set `contextIsolation: true` and `nodeIntegration: false` (exclusive pair for security).
+
+**Preload bridge exposure condition**
+The preload bridge should check if `contextBridge.exposeInMainWorld` exists, not probe `process.contextIsolated` (the property may be inaccessible or unreliable in preload context).
+- Rule: Use `if (contextBridge && typeof contextBridge.exposeInMainWorld === 'function') { contextBridge.exposeInMainWorld(...) }` pattern.
+- Consequence: Remove fallback code that tries to `window.appBridge = ...` when context isolation is active (it will fail).
+
 ---
 
 ## PowerShell / Windows
@@ -30,6 +47,35 @@ Skipping `npm install` causes false-positive test passes on a stale dependency t
 **Electron cleanup: use `taskkill /T`, not `Stop-Process`**
 npm on Windows creates a process tree; stopping only the parent leaves Electron child processes running.
 - Rule: In smoke-check and supervision scripts, clean up with `taskkill /F /T /PID`.
+
+---
+
+## Drawing Canvas & Zoom
+
+**Paper.js stroke scaling with zoom**
+By default, Paper.js scales all stroke widths when the view zooms. For drawing apps, this makes lines appear thinner when zooming in and thicker when zooming out (opposite of visual expectation).
+- Rule: Set `view.strokeScaling = false` in PaperScript initialization to keep strokes at consistent pixel size regardless of zoom level.
+- Implementation: Added in [src/editor.ps.js](src/editor.ps.js#L13-L14) after `paper.settings` initialization.
+- Test: Draw a line, zoom view fully in/out - stroke width should remain visually consistent.
+
+**SVG naturalWidth is unstable across Chromium versions — use viewBox constants**
+`$img[0].naturalWidth` for an SVG `<img>` without explicit `width`/`height` attributes returns
+`300` (CSS default) in Chrome ≤ 66 and the SVG viewBox width in Chrome 84+.
+PancakePainter used this as the zoom denominator in `syncViewToScale`, so upgrading Electron
+produced a ~4.8× coordinate-space shift that corrupted cross-version `.pbp` geometry.
+- Fix: expose `griddleSvgNaturalSize: { width: 1437.2, height: 758.8 }` in `getAppConstants()`
+	and use it instead of `$griddle[0].naturalWidth/naturalHeight` in `app.js`.
+- Migration: `getPBP()` stores `project.data.ppScaleDenominator`; `loadPBP()` scales layers
+	when the saved denominator differs from the current one.  Legacy files (no metadata, all
+	coordinates < 350 units) are auto-detected and scaled up by 1437.2 / 300.
+- Test: `main.config.test.js` verifies the constant value, migration factor, and coordinate width.
+
+**Electron beforeunload for unsaved changes**
+Using `window.onbeforeunload` with `return checkFileStatus()` blocks window close even when the user doesn't want to save. The function must return `undefined` (or nothing) to allow close, not `true`.
+- Rule: In `beforeunload`, call dialog handlers but return `undefined` to allow Electron's close event to proceed.
+- Anti-pattern: `return true` or `return checkFileStatus()` when checkFileStatus returns boolean - this prevents close.
+- Implementation: Modified [src/app.js](src/app.js#L896-L907) to allow close while still showing save dialog on unsaved changes.
+- Test: Make unsaved changes, click X button - should show save dialog, then close successfully.
 
 **`$ErrorActionPreference = 'Stop'` makes `Write-Error` terminate before `exit`**
 `Write-Error` throws an unhandled exception under `Stop` preference, bypassing the intended `exit 1` and producing a verbose trace instead of a clean message.
@@ -138,3 +184,26 @@ A pass-through shim (`return require(moduleName)`) restores broad Node/Electron 
 **Platform-specific module selection in tests must be deterministic**
 Modules that branch on `process.platform` at require-time can make tests pass on one OS and fail on another.
 - Rule: For Jest tests covering platform-gated modules, set `process.platform` before `require(...)`, restore it in `finally`, and `jest.resetModules()` to avoid cross-test leakage.
+
+## Toolbar & CSS Sprites
+
+**CSS sprite positioning requires CSS-driven background-position, not inline style assignments**
+The original toolbar used background-position-x and background-position-y via CSS rules indexed by active tool and color state. When refactoring replaced this with inline background-size: 100% 400% and background-position: center top, the entire sprite (all 4 color variants stacked) displayed in each toolbar cell.
+- Root cause: Inline styles override CSS specificity; removing the CSS class-based selector left only the envelope size.
+- Rule: For color-change tools, use pure background-image in DOM and let CSS drivers handle background-position-x (active state) and background-position-y (color variant selection via parent class).
+
+**i18n text lookups must include fallback strings when locales are incomplete**
+The fill tool warning/error toasts displayed empty orange boxes when i18n returned the key itself or an empty string.
+- Rule: Create a helper (key, fallback) that checks truthy return and defaults to fallback English text.
+- Fallbacks: "Error creating fill.", "Cannot flood fill without at least one closed line.", "Cannot flood fill on top of an existing line.", "Flood fill out of bounds.", "Flood fill area is not closed."
+
+**Flood-fill alpha threshold must be low for anti-aliased strokes**
+Setting alphaBitmapThreshold to 150 means semi-transparent anti-aliased pixels at stroke edges are not included in the rasterized boundary grid, causing false "not closed" detection.
+- Rule: Use alpha threshold 10-30 for hand-drawn shapes to catch anti-aliased edges.
+- Implementation: Changed from 150 to 10 in tool.fill.js line 28.
+
+**Flood-fill grid dimensions and boundary checks must use exclusive upper bounds**
+The ndarray grid is allocated with shape [w, h] (indices 0 to w-1, 0 to h-1). Boundary checks must use >= instead of >.
+- Grid: ndarray(..., [w, h])
+- Check: if (x >= w || y >= h) return; (not x > w)
+

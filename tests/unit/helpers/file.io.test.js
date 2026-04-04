@@ -100,6 +100,32 @@ describe('helper.file-io', () => {
   });
 
   /**
+   * Verifies save error fallback messaging when i18n key is missing.
+   * Expected: toast receives a non-empty human-readable fallback message.
+   */
+  test('saveProjectFile uses fallback toast message when translation is empty', () => {
+    fsMock.writeFileSync.mockImplementation(() => {
+      throw new Error('disk full');
+    });
+
+    i18nMock.t.mockImplementation(() => '');
+
+    const success = fileIO.saveProjectFile({
+      fs: fsMock,
+      paper: paperMock,
+      toastr: toastrMock,
+      i18n: i18nMock,
+      currentFile: currentFile,
+      filePath: 'C:/tmp/new-design.pbp'
+    });
+
+    expect(success).toBe(false);
+    expect(toastrMock.error).toHaveBeenCalledWith(
+      expect.stringContaining('Could not save')
+    );
+  });
+
+  /**
    * Verifies open behavior for missing file paths.
    * Expected: missing file is rejected with user-facing error.
    */
