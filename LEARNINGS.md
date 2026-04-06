@@ -212,3 +212,16 @@ Duplicating reset confirmation logic across windows caused behavior drift (missi
 - Rule: Route export reset through `mainWindow.resetSettings()` and keep one native `MessageBox` flow.
 - Rule: For all reset dialog strings (`message`, `detail`, button labels), provide fallback English text when `i18n.t(...)` returns empty or unresolved keys.
 
+**`checkFileStatus` callback must only be invoked for async Save-As, not all sync paths**
+When `checkFileStatus` was called unconditionally at the end for sync paths (DISCARD, existing save), passing `window.close` as the callback caused re-entrant `window.onbeforeunload` execution.
+- Rule: `checkFileStatus` should return `true` for synchronous success without calling any callback. Callers must handle `true` return directly and pass a callback only for the async Save-As path.
+- Implementation: Renamed param `callback` → `onAsyncComplete`; removed `if (callback) callback()` at function bottom; updated `file.open` and `file.new/close` switcher cases to call their action function directly when `checkFileStatus` returns `true`.
+
+**JSHint `unused: strict` flags all unused function parameters, including leading ones before used params**
+Parameter names that become unused after simplification (e.g., after removing a dead branch that referenced them) will produce lint errors.
+- Rule: Either use the parameter or remove it from the signature. In JavaScript, callers can still pass extra args safely. Update all call sites and tests accordingly.
+
+**JSHint `unused: strict` + `expr: false` means no `void expr;` to silence unused-param warnings**
+The `expr: false` option forbids expression statements, so `void param;` is rejected as a suppressor.
+- Rule: Remove unused parameters from the signature; update callers. Do not rely on `void` or standalone expression statements to suppress lint warnings.
+
