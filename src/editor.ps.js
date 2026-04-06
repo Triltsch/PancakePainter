@@ -7,7 +7,7 @@
    Raster, Group, Point, Layer, path, fs, editorLoadedInit
  */
 
-paper.strokeWidth = 1; // Match original visual line thickness
+paper.strokeWidth = 5; // Match original visual line thickness
 paper.settings.handleSize = 10;
 
 // Layer Management (custom vars)

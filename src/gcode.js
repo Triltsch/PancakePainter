@@ -3,13 +3,22 @@
  * paths into GCODE compatible with the PancakeBot.
  **/
 "use strict";
-/*globals _, paper */
-var ClipperLib = require('./libs/clipper');
-var jscut = require('./libs/jscut_custom')(ClipperLib);
+/*globals _, paper, window */
+var root = typeof window !== 'undefined' ? window :
+  (typeof global !== 'undefined' ? global : {});
+var ClipperLib = typeof module !== 'undefined' && module.exports ?
+  require('./libs/clipper') : root.ClipperLib;
+var jscutFactory = typeof module !== 'undefined' && module.exports ?
+  require('./libs/jscut_custom') : root.jscutCustomFactory;
+var jscut = jscutFactory(ClipperLib);
 
-module.exports = function() {
+var createGcodeRenderer = function() {
   // Module level scope for config data passed when code generated
   var config = {};
+
+  function getColorSpeedConfig() {
+    return Array.isArray(config.botColorSpeed) ? config.botColorSpeed : [];
+  }
 
   /**
    * Create gcode from a given layer
@@ -201,7 +210,7 @@ module.exports = function() {
       gc('note', 'fillAngle: ' + config.fillAngle),
       gc('note', 'fillGroupThreshold: ' + config.fillGroupThreshold),
       gc('note', 'useColorSpeed: ' + config.useColorSpeed),
-      gc('note', 'botColorSpeed: ' + config.botColorSpeed.join(',')),
+      gc('note', 'botColorSpeed: ' + getColorSpeedConfig().join(',')),
       gc('note', '----------------------------------------'),
       gc('workspace', config.printArea),
       gc('units'),
@@ -333,6 +342,12 @@ module.exports = function() {
     };
 
     var b = config.sourceBounds;
+    if (!b || typeof b.width !== 'number' || typeof b.height !== 'number') {
+      if (config.debug) {
+        console.warn('Missing sourceBounds, using safe defaults for remap');
+      }
+      b = {x: 0, y: 0, width: 1, height: 1};
+    }
     return {
       x: Math.round(
         map(b.width - (p.x - b.x), 0, b.width, pa.x, pa.l) * 1000
@@ -612,3 +627,9 @@ module.exports = function() {
 
   return returnRenderer;
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = createGcodeRenderer;
+} else {
+  root.gcRenderFactory = createGcodeRenderer;
+}

@@ -316,7 +316,7 @@ usage.
 
 1. Full smoke check: app startup, editor load, drawing, undo, autotrace,
    export, settings persistence.
-2. Run `npm test`; confirm 49/49 green.
+2. Run `npm test`; confirm the full lint and Jest suite is green.
 3. Any regressions found here trigger targeted fixup issues before close.
 
 ---

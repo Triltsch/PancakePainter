@@ -4,11 +4,9 @@
  * a single givend rawing layer.
  */
  /* globals
-   window, paper, Layer, view, Path, Point
+   window, paper, Layer, view, Path, Point, $, _, gcRenderFactory
  */
-var $ = window.$ = require('jquery');
-var _ = window._ = require('underscore');
-var gcRender = require('../gcode.js')(); // GCODE renderer.
+var gcRender = gcRenderFactory(); // GCODE renderer.
 var ipc = window.ipc = window.webviewBridge.ipc;
 var app = window.app = window.webviewBridge.app;
 

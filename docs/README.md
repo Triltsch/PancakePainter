@@ -40,18 +40,24 @@ This directory contains a complete technical analysis of the PancakePainter code
    - Current gaps and target coverage
    - Implementation roadmap
 
-5. **[13_paperjs_mock_boundary_strategy.md](13_paperjs_mock_boundary_strategy.md)** — Paper.js mock boundary
+5. **[17_post_upgrade_regression_validation.md](17_post_upgrade_regression_validation.md)** — Sprint 5 validation evidence
+   - Automated validation results captured on the upgraded Electron baseline
+   - Interactive regression checklist for startup, drawing, export, autotrace,
+     and persistence workflows
+   - Defect capture rules for follow-up regressions
+
+6. **[13_paperjs_mock_boundary_strategy.md](13_paperjs_mock_boundary_strategy.md)** — Paper.js mock boundary
    - Practical mock boundary for Paper-dependent modules
    - `gcode.js` prototype scope for Jest expansion
    - Limitations, non-goals, and implementation follow-ups
 
-6. **[agent-workflow-recommendations.md](agent-workflow-recommendations.md)** — Agent coordination
+7. **[agent-workflow-recommendations.md](agent-workflow-recommendations.md)** — Agent coordination
    - How to decompose work for multiple agents
    - Suggested execution order
    - Guardrails and coordination patterns
    - Input/output contracts between agents
 
-7. **[open-questions-and-risks.md](open-questions-and-risks.md)** — Known unknowns
+8. **[open-questions-and-risks.md](open-questions-and-risks.md)** — Known unknowns
    - Assumptions that need validation
    - Critical unknowns
    - Risk register with mitigation strategies

@@ -4,9 +4,13 @@
     <title>PancakePainter</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="text/javascript" src="app.js"></script>
+    <!-- Load libraries via script tags before app.js (which expects globals) -->
+    <script type="text/javascript" src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="../node_modules/underscore/underscore-min.js"></script>
+    <script type="text/javascript" src="../node_modules/toastr/build/toastr.min.js"></script>
     <script type="text/javascript" src="../node_modules/paper/dist/paper-full.js"></script>
     <script type="text/javascript" src="../node_modules/rangeslider.js/dist/rangeslider.min.js"></script>
+    <script type="text/javascript" src="app.js"></script>
     <link rel="stylesheet" href="styles/index.css" media="screen" charset="utf-8">
     <link rel="stylesheet" href="../node_modules/toastr/build/toastr.min.css" media="screen" charset="utf-8">
     <link rel="stylesheet" href="../node_modules/rangeslider.js/dist/rangeslider.css" media="screen" charset="utf-8">
@@ -20,7 +24,7 @@
         <canvas id="editor" resize></canvas>
         <img id="griddle" src="images/griddle.svg">
       </div>
-      <span id="drawnote" data-i18n>common.drawnote</span>
+      <span id="drawnote" data-i18n="">common.drawnote</span>
     </div>
 
     <div id="overlay">

@@ -819,6 +819,7 @@ function setImageImport(option) {
 
         // Convert array of files to just the first one.
         filePath = filePath[0];
+        mainWindow.overlay.ensureWindowLoaded('autotrace');
         var autotrace = mainWindow.overlay.windows.autotrace;
 
         // Gifs must be converted as JIMP doesn't have support for them :(

@@ -225,3 +225,7 @@ Parameter names that become unused after simplification (e.g., after removing a 
 The `expr: false` option forbids expression statements, so `void param;` is rejected as a suppressor.
 - Rule: Remove unused parameters from the signature; update callers. Do not rely on `void` or standalone expression statements to suppress lint warnings.
 
+**Custom renderer module loaders can break npm packages that depend on Node built-ins**
+The staged renderer loader resolves package paths manually and failed on dependencies that expect native Node core modules (for example, `util`), causing startup ENOENT errors like `node_modules/util/index.js`.
+- Rule: In renderer flows that run through a custom module resolver, avoid introducing heavy packages with deep Node dependency trees unless built-ins are explicitly handled by the resolver. Prefer existing renderer-safe helpers (for example, Paper.js raster/export utilities) for image pipeline tasks.
+
