@@ -5,21 +5,57 @@
 "use strict";
 
 var electron = require('electron');
-var nodePath = require('path');
+// `path` is a Node built-in. In the Electron webview/simulator sandbox it
+// cannot be resolved; the try/catch keeps the module loading and signals
+// the pure-JS joinPath/parse fallbacks to activate.
+var nodePath = null;
+try {
+  nodePath = require('path');
+} catch (e) {
+  nodePath = null;
+}
 var contextBridge = electron.contextBridge;
 var ipcRenderer = electron.ipcRenderer;
 var bootstrap = ipcRenderer.sendSync('app:get-bootstrap') || {};
 
-// Use the shared IPC channel registry to avoid drift between preload and main.
-var channels = require('../ipc-channels.js');
+// Use the shared IPC channel registry. In the webview/simulator sandbox,
+// relative requires fail; the try/catch activates an inline copy of the
+// same definitions to avoid drift.
+var channels = null;
+try {
+  channels = require('../ipc-channels.js');
+} catch (e) {
+  channels = {
+    autotrace: {
+      IN: ['loadTraceImage', 'renderTrigger', 'pickColor', 'cleanup'],
+      OUT: [
+        'paperReady', 'initLoaded', 'renderComplete',
+        'clonePreview', 'progress', 'colorPicked'
+      ]
+    },
+    export: {
+      IN: ['loadInit', 'renderTrigger', 'cleanup'],
+      OUT: ['paperReady', 'initLoaded', 'renderComplete']
+    }
+  };
+}
 var appRoot = bootstrap.appPath || '';
 
 /**
  * Joins path segments using the OS-native separator so the shim works
  * correctly on both Windows (back-slash) and macOS/Linux (forward-slash).
+ * Falls back to a pure-JS implementation when `path` is unavailable (webview
+ * sandbox / simulator context).
  */
 function joinPath() {
-  return nodePath.join.apply(nodePath, Array.prototype.slice.call(arguments));
+  var args = Array.prototype.slice.call(arguments);
+  if (nodePath) {
+    return nodePath.join.apply(nodePath, args);
+  }
+  // Pure-JS fallback: preserve Windows or POSIX separator derived from the
+  // first segment, then collapse any doubled separators produced by the join.
+  var sep = (args[0] && args[0].indexOf('\\') !== -1) ? '\\' : '/';
+  return args.join(sep).replace(sep === '\\' ? /[/\\]{2,}/g : /\/+/g, sep);
 }
 
 function getPathShim() {
@@ -36,8 +72,21 @@ function getPathShim() {
       return dotIndex > -1 ? baseName.slice(dotIndex) : '';
     },
     parse: function(filePath) {
-      // Delegate to Node's path.parse for correct cross-platform results.
-      return nodePath.parse(filePath || '');
+      // Delegate to Node's path.parse when available for correct results.
+      if (nodePath) {
+        return nodePath.parse(filePath || '');
+      }
+      // Pure-JS fallback used in the webview/simulator sandbox.
+      var f = filePath || '';
+      var lastSep = Math.max(f.lastIndexOf('/'), f.lastIndexOf('\\'));
+      var base = lastSep > -1 ? f.slice(lastSep + 1) : f;
+      var dir  = lastSep > -1 ? f.slice(0, lastSep) : '';
+      var dotIndex = base.lastIndexOf('.');
+      var ext  = dotIndex > 0 ? base.slice(dotIndex) : '';
+      var name = dotIndex > 0 ? base.slice(0, dotIndex) : base;
+      var root = /^[a-zA-Z]:[\\/]/.test(f) ? f.slice(0, 3) :
+                 /^[\\/]/.test(f) ? f.slice(0, 1) : '';
+      return { root: root, dir: dir, base: base, ext: ext, name: name };
     }
   };
 }
