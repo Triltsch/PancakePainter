@@ -75,13 +75,13 @@ describe('helper.unsaved-changes', () => {
    * Expected: 0=discard, 1=save, any other index=cancel.
    */
   test('resolveCloseAction maps selections to discard/save/cancel', () => {
-    expect(unsavedChanges.resolveCloseAction({ name: '' }, 0)).toBe(
+    expect(unsavedChanges.resolveCloseAction(0)).toBe(
       unsavedChanges.actions.DISCARD
     );
-    expect(unsavedChanges.resolveCloseAction({ name: 'a.pbp' }, 1)).toBe(
+    expect(unsavedChanges.resolveCloseAction(1)).toBe(
       unsavedChanges.actions.SAVE
     );
-    expect(unsavedChanges.resolveCloseAction({ name: 'a.pbp' }, 2)).toBe(
+    expect(unsavedChanges.resolveCloseAction(2)).toBe(
       unsavedChanges.actions.CANCEL
     );
   });

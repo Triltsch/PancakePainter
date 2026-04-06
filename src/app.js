@@ -895,7 +895,9 @@ function bindControls() {
         break;
       case 'file.open':
         if (!document.hasFocus()) return; // Triggered from devtools otherwise
-        checkFileStatus(function() {
+        // Shared action: invoked as onAsyncComplete callback (after Save-As)
+        // and directly when checkFileStatus returns true (synchronous paths).
+        var doOpenFileDialog = function() {
           mainWindow.dialog({
             t: 'OpenDialog',
             title: i18n.t(menu),
@@ -913,14 +915,22 @@ function bindControls() {
               filePath: filePath[0]
             });
           });
-        });
+        };
+        if (checkFileStatus(doOpenFileDialog)) {
+          doOpenFileDialog();
+        }
         break;
       case 'file.new':
       case 'file.close':
-        checkFileStatus(function(){
+        // Shared action: invoked as onAsyncComplete callback (after Save-As)
+        // and directly when checkFileStatus returns true (synchronous paths).
+        var doNewFile = function() {
           toastr.info(i18n.t(menu));
           paper.newPBP();
-        });
+        };
+        if (checkFileStatus(doNewFile)) {
+          doNewFile();
+        }
         break;
       case 'edit.selectall':
         paper.selectAll();
@@ -1238,14 +1248,20 @@ mainWindow.overlay = {
 
 // Check the current file status and return whether
 // the current action may proceed.
-function checkFileStatus(callback) {
+//
+// @param {Function|null} onAsyncComplete - invoked ONLY when an async Save-As
+//   is initiated and completes. For synchronous paths (DISCARD, existing-file
+//   Save), this function returns `true` and callers must proceed directly.
+//   Keeping the callback exclusive to the async path prevents re-entrant
+//   window-close calls when called from window.onbeforeunload.
+function checkFileStatus(onAsyncComplete) {
   if (app.currentFile.changed) {
     var promptModel = unsavedChanges.buildClosePromptModel({
       i18n: i18n,
       currentFile: app.currentFile
     });
     var selection = mainWindow.dialog(promptModel.dialogOptions);
-    var action = unsavedChanges.resolveCloseAction(app.currentFile, selection);
+    var action = unsavedChanges.resolveCloseAction(selection);
 
     if (action === unsavedChanges.actions.CANCEL) {
       return false;
@@ -1254,19 +1270,23 @@ function checkFileStatus(callback) {
     if (action === unsavedChanges.actions.SAVE) {
       if (app.currentFile.name === "") {
         // Save-as is async and must complete before continuing.
+        // onAsyncComplete is called only when this async path finishes.
         app.menuClick('file.save', function(){
-          if (callback) callback();
+          if (onAsyncComplete) onAsyncComplete();
         });
         return false;
       }
 
-      app.menuClick('file.save');
+      // Only allow the pending action to continue when the save succeeds.
+      var saveSucceeded = app.menuClick('file.save');
+      if (saveSucceeded !== true) {
+        return false;
+      }
     } else {
       toastr.warning(i18n.t('file.discarded'));
     }
   }
 
-  if (callback) callback();
   return true;
 }
 

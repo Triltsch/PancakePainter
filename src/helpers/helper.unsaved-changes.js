@@ -22,7 +22,7 @@ function translateWithFallback(i18n, key, fallback, vars) {
 function buildClosePromptModel(options) {
   var i18n = options.i18n;
   var currentFile = options.currentFile || {};
-  var isNewFile = currentFile.name === '';
+  var isNewFile = !currentFile.name;
   var buttons;
   var message;
   var detail;
@@ -75,18 +75,12 @@ function buildClosePromptModel(options) {
   };
 }
 
-function resolveCloseAction(currentFile, selectedIndex) {
-  var isNewFile = !currentFile || currentFile.name === '';
-
+function resolveCloseAction(selectedIndex) {
   if (selectedIndex === 0) {
     return actions.DISCARD;
   }
 
   if (selectedIndex === 1) {
-    if (isNewFile) {
-      return actions.SAVE;
-    }
-
     return actions.SAVE;
   }
 
