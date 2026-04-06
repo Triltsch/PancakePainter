@@ -56,14 +56,18 @@ module.exports = function(context) {
    * Bind the various buttons on the window.
    */
   function bindButtons() {
-    $('button', context).click(function() {
+    $('button', context)
+      .off('click.exportButtons')
+      .on('click.exportButtons', function(e) {
+      e.preventDefault();
+
       switch(this.name) {
         case 'cancel':
           mainWindow.overlay.toggleWindow('export', false);
           break;
 
         case 'reset':
-          mainWindow.resetSettings();
+          exportData.resetSettings();
           break;
 
         case 'reselect':
@@ -79,7 +83,7 @@ module.exports = function(context) {
           exportData.saveData();
           break;
       }
-    });
+      });
 
     // Bind ESC key exit.
     // TODO: Build this off data attr global bind thing.
@@ -200,6 +204,28 @@ module.exports = function(context) {
     ];
 
     exportData.renderUpdate();
+  };
+
+  /**
+   * Reset export settings to defaults and refresh export controls.
+   */
+  exportData.resetSettings = function() {
+    var didReset = false;
+
+    if (typeof mainWindow.resetSettings === 'function') {
+      didReset = mainWindow.resetSettings();
+    }
+
+    if (!didReset) {
+      return;
+    }
+
+    // Mirror is export-only state and is not persisted in app settings.
+    $('#mirrorexport', context).prop('checked', function() {
+      return this.defaultChecked;
+    });
+
+    exportData.setRenderSettings();
   };
 
   /**

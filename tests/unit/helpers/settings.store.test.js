@@ -122,6 +122,22 @@ describe('helper.settings-store', () => {
     store.reset();
 
     expect(fsMock.removeSync).toHaveBeenCalledWith('/app/settings.json');
+    expect(fsMock.removeSync).toHaveBeenCalledWith('/user/config.json');
+    expect(store.v.botspeed).toBe(70);
+  });
+
+  /**
+   * Verifies reset clears user override file as well.
+   * Expected: user config values do not survive reset and defaults are restored.
+   */
+  test('reset removes user overrides before reloading defaults', () => {
+    fileMap['/app/settings.json'] = JSON.stringify({ botspeed: 10 });
+    fileMap['/user/config.json'] = JSON.stringify({ botspeed: 95 });
+
+    store.reset();
+
+    expect(fsMock.removeSync).toHaveBeenCalledWith('/app/settings.json');
+    expect(fsMock.removeSync).toHaveBeenCalledWith('/user/config.json');
     expect(store.v.botspeed).toBe(70);
   });
 });

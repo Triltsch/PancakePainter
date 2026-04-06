@@ -1018,17 +1018,39 @@ function bindControls() {
 
   // Add settings reset helper function.
   mainWindow.resetSettings = function() {
+    var resetTitle = i18n.t('settings.resetconfirm');
+    var resetDetail = i18n.t('settings.resetconfirmdetail');
+    var cancelLabel = i18n.t('common.button.cancel');
+    var resetLabel = i18n.t('settings.button.reset');
+
+    if (!resetTitle || resetTitle === 'settings.resetconfirm') {
+      resetTitle = 'Reset to factory default settings?';
+    }
+    if (!resetDetail || resetDetail === 'settings.resetconfirmdetail') {
+      resetDetail =
+        'This will revert all settings on this page to default. ' +
+        'This cannot be undone.';
+    }
+    if (!cancelLabel || cancelLabel === 'common.button.cancel') {
+      cancelLabel = 'Cancel';
+    }
+    if (!resetLabel || resetLabel === 'settings.button.reset') {
+      resetLabel = 'Revert All Settings';
+    }
+
     var doReset = mainWindow.dialog({
       t: 'MessageBox',
       type: 'question',
-      message: i18n.t('settings.resetconfirm'),
-      detail: i18n.t('settings.resetconfirmdetail'),
+      message: resetTitle,
+      detail: resetDetail,
+      defaultId: 0,
+      cancelId: 1,
       buttons: [
-        i18n.t('common.button.cancel'),
-        i18n.t('settings.button.reset')
+        resetLabel,
+        cancelLabel
       ]
     });
-    if (doReset !== 0) {
+    if (doReset === 0) {
       // Clear the file, reload settings, push to elements.
       app.settings.reset();
       $('.settings-managed').each(function() {
@@ -1044,7 +1066,10 @@ function bindControls() {
         .rangeslider('update', true);
 
       $(window).triggerHandler('settingsChanged');
+      return true;
     }
+
+    return false;
   };
 }
 
