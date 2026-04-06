@@ -5,31 +5,21 @@
 "use strict";
 
 var electron = require('electron');
+var nodePath = require('path');
 var contextBridge = electron.contextBridge;
 var ipcRenderer = electron.ipcRenderer;
 var bootstrap = ipcRenderer.sendSync('app:get-bootstrap') || {};
 
-var channels = {
-  autotrace: {
-    IN: ['loadTraceImage', 'renderTrigger', 'pickColor', 'cleanup'],
-    OUT: [
-      'paperReady',
-      'initLoaded',
-      'renderComplete',
-      'clonePreview',
-      'progress',
-      'colorPicked'
-    ]
-  },
-  export: {
-    IN: ['loadInit', 'renderTrigger', 'cleanup'],
-    OUT: ['paperReady', 'initLoaded', 'renderComplete']
-  }
-};
+// Use the shared IPC channel registry to avoid drift between preload and main.
+var channels = require('../ipc-channels.js');
 var appRoot = bootstrap.appPath || '';
 
+/**
+ * Joins path segments using the OS-native separator so the shim works
+ * correctly on both Windows (back-slash) and macOS/Linux (forward-slash).
+ */
 function joinPath() {
-  return Array.prototype.slice.call(arguments).join('\\').replace(/\\+/g, '\\');
+  return nodePath.join.apply(nodePath, Array.prototype.slice.call(arguments));
 }
 
 function getPathShim() {
@@ -46,20 +36,8 @@ function getPathShim() {
       return dotIndex > -1 ? baseName.slice(dotIndex) : '';
     },
     parse: function(filePath) {
-      var normalizedPath = filePath || '';
-      var parts = normalizedPath.split(/[\\/]/);
-      var baseName = parts.pop() || '';
-      var dirName = parts.join('\\');
-      var extName = this.extname(baseName);
-      var fileName = extName ? baseName.slice(0, -extName.length) : baseName;
-
-      return {
-        root: '',
-        dir: dirName,
-        base: baseName,
-        ext: extName,
-        name: fileName
-      };
+      // Delegate to Node's path.parse for correct cross-platform results.
+      return nodePath.parse(filePath || '');
     }
   };
 }
