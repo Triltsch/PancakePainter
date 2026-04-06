@@ -144,6 +144,16 @@ describe('webview-preload — joinPath fallback (no path module)', function() {
     var result = win.webviewBridge.path.join('/test/', '/gcode.js');
     expect(result).not.toMatch(/\/\//);
   });
+
+  /**
+   * Verifies empty first segments do not introduce a leading separator.
+   * Expected: behaves like path.join('', 'src') -> 'src'.
+   */
+  test('matches path.join when first segment is empty', function() {
+    var win = loadPreload({ pathThrows: true });
+    var result = win.webviewBridge.path.join('', 'src');
+    expect(result).toBe('src');
+  });
 });
 
 describe('webview-preload — parse fallback (no path module)', function() {
@@ -182,6 +192,30 @@ describe('webview-preload — parse fallback (no path module)', function() {
     var result = win.webviewBridge.path.parse('gcode.js');
     expect(result.base).toBe('gcode.js');
     expect(result.dir).toBe('');
+  });
+
+  /**
+   * Verifies root-level POSIX files preserve '/' as the directory.
+   * Expected: '/file.js' yields dir '/'.
+   */
+  test('parses root-level POSIX file with root directory', function() {
+    var win = loadPreload({ pathThrows: true });
+    var result = win.webviewBridge.path.parse('/file.js');
+    expect(result.base).toBe('file.js');
+    expect(result.dir).toBe('/');
+    expect(result.root).toBe('/');
+  });
+
+  /**
+   * Verifies drive-root Windows files preserve 'C:\\' as the directory.
+   * Expected: 'C:\\file.js' yields dir and root 'C:\\'.
+   */
+  test('parses drive-root Windows file with drive directory', function() {
+    var win = loadPreload({ pathThrows: true });
+    var result = win.webviewBridge.path.parse('C:\\file.js');
+    expect(result.base).toBe('file.js');
+    expect(result.dir).toBe('C:\\');
+    expect(result.root).toBe('C:\\');
   });
 });
 

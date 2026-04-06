@@ -246,7 +246,8 @@ script. This causes the entire preload to refuse to load, breaking the IPC bridg
 **IPC channel allowlist defined in the preload will drift from the shared registry**
 A local `channels` object in `webview-preload.js` that mirrors `ipc-channels.js` has no enforcement link.
 New channels added to `ipc-channels.js` will not be automatically allowed in the preload.
-- Rule: In `webview-preload.js`, always `require('../ipc-channels.js')` rather than duplicating the object literal. This makes the preload allowlist a strict subset of the shared registry by construction.
+- Rule: In `webview-preload.js`, attempt `require('../ipc-channels.js')` first and keep the preload allowlist sourced from the shared registry in normal contexts.
+- Rule: Only duplicate the object literal inside a guarded fallback for module-resolution failures in sandbox/webview contexts; rethrow unexpected require errors.
 
 **Polling scripts should be parameterized, not duplicated per PR**
 Creating a new `.ps1` file for each PR number results in identical scripts that must all be updated when the detection logic changes.
