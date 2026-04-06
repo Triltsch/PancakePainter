@@ -207,3 +207,8 @@ The ndarray grid is allocated with shape [w, h] (indices 0 to w-1, 0 to h-1). Bo
 - Grid: ndarray(..., [w, h])
 - Check: if (x >= w || y >= h) return; (not x > w)
 
+**Settings reset confirmation should reuse one native dialog path and include fallback text**
+Duplicating reset confirmation logic across windows caused behavior drift (missing prompt, inconsistent button handling, and empty dialog text in some runtimes).
+- Rule: Route export reset through `mainWindow.resetSettings()` and keep one native `MessageBox` flow.
+- Rule: For all reset dialog strings (`message`, `detail`, button labels), provide fallback English text when `i18n.t(...)` returns empty or unresolved keys.
+

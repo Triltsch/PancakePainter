@@ -19,6 +19,9 @@ function createSettingsStore(options) {
     clear: function() {
       fs.removeSync(settingsFile);
     },
+    clearUserOverrides: function() {
+      fs.removeSync(userSettingsFile);
+    },
     save: function() {
       var serialized = JSON.stringify(this.v);
       try {
@@ -57,6 +60,7 @@ function createSettingsStore(options) {
     },
     reset: function() {
       this.clear();
+      this.clearUserOverrides();
       this.load();
     }
   };
