@@ -229,15 +229,25 @@ The `expr: false` option forbids expression statements, so `void param;` is reje
 The staged renderer loader resolves package paths manually and failed on dependencies that expect native Node core modules (for example, `util`), causing startup ENOENT errors like `node_modules/util/index.js`.
 - Rule: In renderer flows that run through a custom module resolver, avoid introducing heavy packages with deep Node dependency trees unless built-ins are explicitly handled by the resolver. Prefer existing renderer-safe helpers (for example, Paper.js raster/export utilities) for image pipeline tasks.
 
-**Webview preload `joinPath` must delegate to Node's `path` module, not hardcode backslashes**
-Implementing `joinPath` with `Array.join('\\')` produces correct results on Windows only.
-On macOS/Linux, module resolution paths passed through `resolveAppModule` fail because paths contain backslashes that are not treated as separators.
-- Rule: In preload scripts, `require('path')` is available (preloads run with Node access). Use `nodePath.join.apply(nodePath, args)` and `nodePath.parse(filePath)` instead of manual string joining, so the shim is cross-platform by construction.
+**Webview preload top-level `require()` fails in the simulator/webview sandbox**
+The Electron webview/simulator sandbox cannot resolve either Node built-ins (`path`) or
+relative module paths (`../ipc-channels.js`) via `require()` at the top level of a preload
+script. This causes the entire preload to refuse to load, breaking the IPC bridge.
+- Rule: Any `require()` at the top level of a webview preload that could run in a sandbox
+  must be wrapped in a `try/catch`. For Node built-ins (`path`), set the result to `null`
+  and activate a pure-JS fallback. For relative requires (channel registries), provide an
+  inline copy of the same definitions as the catch fallback to keep channels in sync with
+  the authoritative source without duplicating them in a non-guarded way.
+- Rule: Use `nodePath.join.apply(nodePath, args)` when `nodePath` is available; otherwise
+  use a pure-JS fallback that detects the separator from the first argument.
+- Implementation: `src/preload/webview-preload.js` — try/catch on both `require('path')`
+  and `require('../ipc-channels.js')` with matching fallbacks.
 
 **IPC channel allowlist defined in the preload will drift from the shared registry**
 A local `channels` object in `webview-preload.js` that mirrors `ipc-channels.js` has no enforcement link.
 New channels added to `ipc-channels.js` will not be automatically allowed in the preload.
-- Rule: In `webview-preload.js`, always `require('../ipc-channels.js')` rather than duplicating the object literal. This makes the preload allowlist a strict subset of the shared registry by construction.
+- Rule: In `webview-preload.js`, attempt `require('../ipc-channels.js')` first and keep the preload allowlist sourced from the shared registry in normal contexts.
+- Rule: Only duplicate the object literal inside a guarded fallback for module-resolution failures in sandbox/webview contexts; rethrow unexpected require errors.
 
 **Polling scripts should be parameterized, not duplicated per PR**
 Creating a new `.ps1` file for each PR number results in identical scripts that must all be updated when the detection logic changes.
