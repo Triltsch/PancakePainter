@@ -52,6 +52,7 @@ var app = {
 };
 var fs = bridge.fs;
 var rendererModuleCache = {};
+var unsavedChanges = loadRendererModule('./helpers/helper.unsaved-changes.js');
 
 function getRendererFs() {
   return {
@@ -1073,16 +1074,24 @@ function bindControls() {
   };
 }
 
-// Handle unsaved file changes before window close
-window.onbeforeunload = function() {
-  // Only prevent close if changes AND dialog not processed
-  if (app.currentFile.changed) {
-    // checkFileStatus handles dialog, returns false if async save started
-    checkFileStatus();
-    // Don't return - let Electron handle close
-    // If unsaved changes, checkFileStatus already showed dialog
+// Handle unsaved file changes before window close.
+window.onbeforeunload = function(e) {
+  if (!app.currentFile.changed) {
+    return;
   }
-  // Always allow close (return undefined)
+
+  var shouldClose = checkFileStatus(function() {
+    // Save-as is async. Re-trigger close when that save successfully completes.
+    window.close();
+  });
+
+  if (shouldClose === false) {
+    if (e) {
+      e.returnValue = false;
+    }
+    return false;
+  }
+
   return;
 };
 
@@ -1227,62 +1236,38 @@ mainWindow.overlay = {
   currentWindow: {}
 };
 
-// Check the current file status and alert the user what to do before continuing
-// This is pretty forceful and there's no way to back out.
+// Check the current file status and return whether
+// the current action may proceed.
 function checkFileStatus(callback) {
   if (app.currentFile.changed) {
-    var doSave = 0;
-    if (app.currentFile.name === "") { // New file or existing?
-      // Save new is async and needs to cancel the close and use a callback
-      doSave = mainWindow.dialog({
-        t: 'MessageBox',
-        type: 'warning',
-        message: i18n.t('file.confirm.notsaved'),
-        detail: i18n.t('file.confirm.savenew'),
-        buttons:[i18n.t('file.button.discard'), i18n.t('file.button.savenew')]
-      });
+    var promptModel = unsavedChanges.buildClosePromptModel({
+      i18n: i18n,
+      currentFile: app.currentFile
+    });
+    var selection = mainWindow.dialog(promptModel.dialogOptions);
+    var action = unsavedChanges.resolveCloseAction(app.currentFile, selection);
 
-      if (doSave) {
+    if (action === unsavedChanges.actions.CANCEL) {
+      return false;
+    }
+
+    if (action === unsavedChanges.actions.SAVE) {
+      if (app.currentFile.name === "") {
+        // Save-as is async and must complete before continuing.
         app.menuClick('file.save', function(){
           if (callback) callback();
         });
         return false;
-      } else {
-        toastr.warning(i18n.t('file.discarded'));
       }
 
+      app.menuClick('file.save');
     } else {
-      doSave = mainWindow.dialog({
-        t: 'MessageBox',
-        type: 'warning',
-        message: i18n.t('file.confirm.changed'),
-        detail: i18n.t('file.confirm.save', {file: app.currentFile.name}),
-        buttons:[
-          i18n.t('file.button.discard'),
-          i18n.t('file.button.save'),
-          i18n.t('file.button.savenew')
-        ]
-      });
-
-      if (doSave) {
-        if (doSave === 1) { // Save current file
-          // Save in place is sync, so doesn't need to cancel close
-          app.menuClick('file.save');
-        } else { // Save new file
-          app.menuClick('file.saveas', function(){
-            if (callback) callback();
-          });
-          return false;
-        }
-      } else {
-        toastr.warning(i18n.t('file.discarded'));
-      }
+      toastr.warning(i18n.t('file.discarded'));
     }
   }
 
   if (callback) callback();
-  // Don't return true - allow close to proceed
-  return;
+  return true;
 }
 
 
