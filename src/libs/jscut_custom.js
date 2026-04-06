@@ -32,7 +32,9 @@
  */
 "use strict";
 
-module.exports = function(ClipperLib) {
+var root = typeof window !== 'undefined' ? window :
+    (typeof global !== 'undefined' ? global : {});
+var createJscutFactory = function(ClipperLib) {
   // Basic object setup.
   var jscut = {
     cam: {},
@@ -1423,5 +1425,11 @@ module.exports = function(ClipperLib) {
 ██      ██ ██   ████ ██ ███████ ██   ██
 */
 
-  return jscut;
+    return jscut;
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = createJscutFactory;
+} else {
+    root.jscutCustomFactory = createJscutFactory;
+}

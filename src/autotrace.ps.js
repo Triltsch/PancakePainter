@@ -6,14 +6,12 @@
  * messages.
  */
  /* globals
-   window, paper, Color, Layer, Group, Raster, view, project, Path, Point
+   window, paper, Color, Layer, Group, Raster, view, project, Path, Point, $, _
  */
-var _ = require('underscore');
-var $ = require('jquery');
 var jimp = require('jimp');
 var ipc = window.ipc = window.webviewBridge.ipc;
 var app = window.app = window.webviewBridge.app;
-var path = require('path');
+var path = window.webviewBridge.path;
 var pickColorMode = false;
 
 var autotrace = window.autotrace = {

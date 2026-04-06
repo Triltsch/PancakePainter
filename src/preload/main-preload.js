@@ -10,6 +10,7 @@ var contextBridge = electron.contextBridge;
 var ipcRenderer = electron.ipcRenderer;
 var fs = require('fs-plus');
 var i18n = require('i18next');
+var path = require('path');
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -78,6 +79,20 @@ function getAppBridge() {
         return fs.existsSync(filePath);
       }
     },
+    path: {
+      join: function() {
+        return path.join.apply(path, arguments);
+      },
+      extname: function(filePath) {
+        return path.extname(filePath);
+      },
+      basename: function(filePath) {
+        return path.basename(filePath);
+      },
+      parse: function(filePath) {
+        return path.parse(filePath);
+      }
+    },
     menu: {
       onMenuClick: function(handler) {
         return ipcRenderer.on('menu:click', function(event, key) { /* jshint ignore:line */
@@ -98,11 +113,6 @@ function getAppBridge() {
 
 var appBridge = getAppBridge();
 
-if (contextBridge &&
-    typeof contextBridge.exposeInMainWorld === 'function' &&
-    typeof process !== 'undefined' &&
-    process.contextIsolated === true) {
+if (contextBridge && typeof contextBridge.exposeInMainWorld === 'function') {
   contextBridge.exposeInMainWorld('appBridge', appBridge);
-} else {
-  window.appBridge = appBridge;
 }

@@ -170,7 +170,7 @@ function windowInit() {
         fullscreenable: false, // Workaround for fullscreen OSX bug :'(
         webPreferences: {
           contextIsolation: true,
-          nodeIntegration: true,
+          nodeIntegration: false,
           nodeIntegrationInSubFrames: false,
           sandbox: false,
           // Required in Electron 28+ for embedded webview windows.
@@ -193,6 +193,18 @@ function windowInit() {
 
       // and load the index.html of the app.
       mainWindow.loadURL('file://' + __dirname + '/index.html');
+
+      // Mirror renderer console output into the main process logs.
+      mainWindow.webContents.on('console-message', function() {
+        var level = arguments[1];
+        var message = arguments[2];
+        var line = arguments[3];
+        var sourceId = arguments[4];
+        console.log(
+          '[RendererConsole][L' + level + '] ' + sourceId + ':' + line +
+          ' ' + message
+        );
+      });
 
 
       // Save Move/Resize back to file

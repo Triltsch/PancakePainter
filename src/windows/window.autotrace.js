@@ -10,8 +10,6 @@
  /*globals window, $, path, app, mainWindow, i18n, _, paper */
 
 module.exports = function(context) {
-  var jimp = require('jimp');
-
   // Central window detail object returned for windows[autotrace] object.
   var autotrace = {
     settings: {},
@@ -402,19 +400,53 @@ module.exports = function(context) {
    *   Option for loading a preset on window show.
    */
   autotrace.imageTransfer = function(file, preset) {
-    // Load the image, if good, open the window. Otherwise, fail out!
-    jimp.read(file).then(function(image) {
-      // Save the image out as a transfer PNG to get it to the second process.
-      image
-        .contain(512, 512)
-        .write(autotrace.intermediary, function() {
-          // Only try to run init if we're fully loaded.
-          if (autotrace.autoTraceLoaded) {
-            autotrace.$webview.send.loadTraceImage();
-          }
-          autotrace.preset = preset;
-          mainWindow.overlay.toggleWindow('autotrace', true);
-        });
+    // Load and normalize image in the renderer Paper scope to avoid requiring
+    // deep Node module trees through the custom renderer loader.
+    new Promise(function(resolve, reject) {
+      var raster = new paper.Raster(file);
+
+      function cleanupRaster() {
+        if (raster && typeof raster.remove === 'function') {
+          raster.remove();
+        }
+      }
+
+      raster.onLoad = function() {
+        var bounds = raster.bounds || {};
+        var width = bounds.width || raster.width || 0;
+        var height = bounds.height || raster.height || 0;
+        var scale = 1;
+
+        if (width > 0 && height > 0) {
+          scale = Math.min(512 / width, 512 / height, 1);
+        }
+
+        if (scale > 0 && scale < 1 && typeof raster.scale === 'function') {
+          raster.scale(scale);
+        }
+
+        paper.utils.saveRasterImage(raster, 72, autotrace.intermediary)
+          .then(function() {
+            cleanupRaster();
+            resolve();
+          })
+          .catch(function(err) {
+            cleanupRaster();
+            reject(err);
+          });
+      };
+
+      raster.onError = function(err) {
+        cleanupRaster();
+        reject(err || Error('Could not load image for autotrace import.'));
+      };
+    }).then(function() {
+      // Only try to run init if we're fully loaded.
+      if (autotrace.autoTraceLoaded) {
+        autotrace.$webview.send.loadTraceImage();
+      }
+      autotrace.preset = preset;
+      mainWindow.overlay.toggleWindow('autotrace', true);
     }).catch(function (err) {
       var tryAgain = mainWindow.dialog({
         t: 'MessageBox',
